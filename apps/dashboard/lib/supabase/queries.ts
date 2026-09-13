@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
-  AgentPolicy, ChannelPerformance, Commitment, CommitmentListItem, CohortImpact, CollectionRule, ConversationEvent, ConversationRow, ConversationSummary, ConversationTimelineEvent,
+  AgentPolicy, ChannelPerformance, Commitment, CommitmentListItem, ConversationResult, CohortImpact, CollectionRule, ConversationEvent, ConversationRow, ConversationSummary, ConversationTimelineEvent,
   CustomerOverview, DailyMetric, EvaluationCriterion, FactDefinition, Intervention, Kpis, LiveConversation, Message, ModelCost, ModelPerformance, Offer,
   OfferPerformance, OpenEscalation, OutcomeDefinition, PaymentLink, PendingCommitment, Playbook, PlaybookStage, PlaybookStageFull, RiskBand, RiskDistributionRow,
   RuleOffer, RulePerformance, SentimentShift, SignalDefinition, StageFunnel, TurnEvaluation,
@@ -218,11 +218,22 @@ export async function getOfferNames() {
   return Object.fromEntries(rows.map(row => [row.code, row.name])) as Record<string, string>;
 }
 
+/** v_conversation_results (migración 20260913000100). null si la vista aún no existe (42P01) o no hay fila. */
+export async function getConversationResult(conversationId: string): Promise<ConversationResult | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("v_conversation_results").select("bank_result, turns_under_2s_pct, guardrail_events").eq("conversation_id", conversationId).maybeSingle();
+  if (error) return null;
+  return data as ConversationResult | null;
+}
+
 export async function getPromiseKpiData() {
-  const [commitments, voiceCalls] = await Promise.all([
+  const supabase = await createClient();
+  const [commitments, results] = await Promise.all([
     selectAll<{ status: string; amount: number | null; created_at: string }>("commitments", "status, amount, created_at"),
     // Llamadas de voz terminadas: base para "% con resultado claro".
-    selectAll<{ outcome: string | null; commitment_id: string | null }>("conversations", "outcome, commitment_id", query => query.eq("channel", "voice").not("ended_at", "is", null)),
+    supabase.from("v_conversation_results").select("bank_result").eq("channel", "voice").not("ended_at", "is", null),
   ]);
-  return { commitments, voiceCalls };
+  if (!results.error) return { commitments, voiceCalls: (results.data ?? []) as { bank_result: string }[], fromView: true };
+  const fallback = await selectAll<{ outcome: string | null; commitment_id: string | null }>("conversations", "outcome, commitment_id", query => query.eq("channel", "voice").not("ended_at", "is", null));
+  return { commitments, voiceCalls: fallback.map(row => ({ bank_result: null, ...row })), fromView: false };
 }

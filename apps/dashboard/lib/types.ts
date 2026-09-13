@@ -230,6 +230,9 @@ export type CommitmentListItem = Commitment & { customer_name: string; customer_
 
 export type PaymentLink = { id: string; conversation_id: string | null; commitment_id: string | null; token: string; url: string; amount: number; status: string; expires_at: string; paid_at: string | null; created_at: string };
 
+/** Fila de v_conversation_results (solo las columnas que usa la vista de conversación). */
+export type ConversationResult = { bank_result: string; turns_under_2s_pct: number | null; guardrail_events: number };
+
 export type ModelCost = { role: string | null; provider: string | null; cost_usd: number | null };
 
 export type PlaybookStage = { id: string; stage_key: string; position: number; name: string; objective: string | null; is_terminal: boolean };

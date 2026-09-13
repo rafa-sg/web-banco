@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bot, CircleCheck, CircleDashed, CircleX, Cog, Handshake, Scissors, Send, TriangleAlert, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Bot, CircleCheck, CircleDashed, CircleX, Cog, Handshake, Scissors, Send, ShieldAlert, TriangleAlert, UserRound } from "lucide-react";
 import { CommitmentCard, NoCommitmentCard } from "@/components/commitments/commitment-card";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import { Elapsed } from "@/components/live/elapsed";
 import { createClient } from "@/lib/supabase/client";
 import {
-  durationLabel, eventDetail, groupHighlightedEvents, highlightedEvents, parseToolMessage, resultCategory, resultCategoryLabels, secondsLabel, stageChanges,
+  bankResultCategory, durationLabel, eventDetail, groupHighlightedEvents, highlightedEvents, parseToolMessage, resultCategory, resultCategoryLabels, secondsLabel, stageChanges,
 } from "@/lib/conversation";
 import { bandToGrade, channelLabels, dateTimeLabel, humanize, intentLabels, money, outcomeLabels, sentimentLabels } from "@/lib/prevention";
-import type { Commitment, ConversationEvent, ConversationRow, CustomerOverview, Message, ModelCost, PaymentLink, PlaybookStage, TurnEvaluation } from "@/lib/types";
+import type { Commitment, ConversationResult, ConversationEvent, ConversationRow, CustomerOverview, Message, ModelCost, PaymentLink, PlaybookStage, TurnEvaluation } from "@/lib/types";
 
 const VISIBLE_EVENTS = 8;
 const LATENCY_TARGET_MS = 2000;
@@ -42,7 +43,7 @@ function ToolChipRow({ message }: { message: Message }) {
   </details>;
 }
 
-export function LiveConversation({ conversation: initialConversation, customer, initialMessages, initialEvaluations, initialEvents, initialCommitments, initialPaymentLinks, costs, offerNames, stages }: {
+export function LiveConversation({ conversation: initialConversation, customer, initialMessages, initialEvaluations, initialEvents, initialCommitments, initialPaymentLinks, costs, offerNames, result, stages }: {
   conversation: ConversationRow;
   customer: CustomerOverview | null;
   initialMessages: Message[];
@@ -52,6 +53,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
   initialPaymentLinks: PaymentLink[];
   costs: ModelCost[];
   offerNames: Record<string, string>;
+  result: ConversationResult | null;
   stages: PlaybookStage[];
 }) {
   const [conversation, setConversation] = useState(initialConversation);
@@ -63,7 +65,10 @@ export function LiveConversation({ conversation: initialConversation, customer, 
   const [connected, setConnected] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const transcriptEnd = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const id = conversation.id;
+  const ended = Boolean(conversation.ended_at);
+  const endedOnLoad = useRef(ended);
 
   useEffect(() => {
     const supabase = createClient();
@@ -81,18 +86,25 @@ export function LiveConversation({ conversation: initialConversation, customer, 
     return () => { supabase.removeChannel(channel); };
   }, [id]);
 
+  // Al cerrar en vivo: recarga props de servidor (resultado de la vista, resumen en español, costos) sin perder el estado Realtime.
+  useEffect(() => {
+    if (!ended || endedOnLoad.current) return;
+    endedOnLoad.current = true;
+    const timer = setTimeout(() => router.refresh(), 1500);
+    return () => clearTimeout(timer);
+  }, [ended, router]);
+
   useEffect(() => { transcriptEnd.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [messages.length]);
 
   const latest = evaluations.at(-1) ?? null;
   const currentStageKey = latest?.to_stage ?? conversation.current_stage;
   const currentPosition = stages.find(stage => stage.stage_key === currentStageKey)?.position ?? -1;
   const stageName = (key: string | null) => stages.find(stage => stage.stage_key === key)?.name ?? humanize(key);
-  const ended = Boolean(conversation.ended_at);
   const grade = customer?.risk_band ? bandToGrade[customer.risk_band] : null;
 
   const commitment = commitments.find(row => row.id === conversation.commitment_id) ?? commitments.at(-1) ?? null;
   const commitmentLinks = paymentLinks.filter(link => !commitment || !link.commitment_id || link.commitment_id === commitment.id);
-  const category = ended ? resultCategory(conversation.outcome, Boolean(commitment)) : null;
+  const category = ended ? bankResultCategory(result?.bank_result) ?? resultCategory(conversation.outcome, Boolean(commitment)) : null;
 
   const lastOffer = [...events].reverse().find(event => event.event_type === "offer_validated" || event.event_type === "offer_rejected");
   const eventGroups = useMemo(() => groupHighlightedEvents(events), [events]);
@@ -105,6 +117,10 @@ export function LiveConversation({ conversation: initialConversation, customer, 
   const p95Latency = conversation.p95_latency_ms ?? endedPayload?.p95_latency_ms ?? percentile(agentLatencies, 95);
   const interruptions = conversation.interruption_count ?? events.filter(event => event.event_type === "interruption_real").length;
   const durationMs = conversation.duration_ms ?? (conversation.ended_at ? new Date(conversation.ended_at).getTime() - new Date(conversation.started_at).getTime() : null);
+  const turnsUnder2s = result?.turns_under_2s_pct ?? (agentLatencies.length ? Math.round((100 * agentLatencies.filter(value => value < LATENCY_TARGET_MS).length) / agentLatencies.length) : null);
+  const dialing = events.find(event => event.event_type === "call_dialing")?.payload as { total_ms?: number } | undefined;
+  const guardrails = events.filter(event => event.event_type === "guardrail_triggered");
+  const lastGuardrail = guardrails.at(-1);
   const costByRole = costs.reduce<Record<string, number>>((totals, row) => {
     const key = humanize(row.role ?? row.provider ?? "otro");
     totals[key] = (totals[key] ?? 0) + (row.cost_usd ?? 0);
@@ -143,9 +159,10 @@ export function LiveConversation({ conversation: initialConversation, customer, 
     {ended && <section className="closing-card closing-metrics" aria-label="Métricas de la conversación">
       <div><span className="eyebrow">LATENCIA PROM.</span><strong>{secondsLabel(avgLatency)}</strong></div>
       <div><span className="eyebrow">P95 POR TURNO</span><strong className={p95Latency == null ? "" : p95Latency < LATENCY_TARGET_MS ? "metric-ok" : "metric-bad"}>{secondsLabel(p95Latency)}</strong><small>Meta &lt; 2 s</small></div>
-      <div><span className="eyebrow">TURNOS</span><strong>{conversation.turn_count}</strong></div>
+      <div><span className="eyebrow">TURNOS &lt; 2 S</span><strong>{turnsUnder2s != null ? `${turnsUnder2s}%` : "—"}</strong><small>{conversation.turn_count} turnos</small></div>
       <div><span className="eyebrow">INTERRUPCIONES</span><strong>{interruptions}</strong></div>
-      <div><span className="eyebrow">DURACIÓN</span><strong>{durationLabel(durationMs)}</strong></div>
+      <div><span className="eyebrow">DURACIÓN</span><strong>{durationLabel(durationMs)}</strong>{dialing?.total_ms != null && <small>Marcado: {secondsLabel(dialing.total_ms)}</small>}</div>
+      <div><span className="eyebrow">GUARDRAILS</span><strong>{guardrails.length}</strong><small>{guardrails.length ? "Intervenciones de seguridad" : "Sin activaciones"}</small></div>
       <div><span className="eyebrow">RIESGO</span><strong>{conversation.risk_before ?? "—"} → {conversation.risk_after ?? "—"}</strong></div>
       <div><span className="eyebrow">COSTO</span><strong>{conversation.cost_usd != null ? money(conversation.cost_usd) : "—"}</strong>{Object.keys(costByRole).length > 1 && <small>{Object.entries(costByRole).map(([role, cost]) => `${role} $${cost.toFixed(4)}`).join(" · ")}</small>}</div>
       <div><span className="eyebrow">CIERRE</span><strong>{dateTimeLabel(conversation.ended_at)}</strong></div>
@@ -193,6 +210,8 @@ export function LiveConversation({ conversation: initialConversation, customer, 
               ? <span className="policy-ok"><CircleCheck size={14} /> Dentro de límites</span>
               : <span className="policy-bad"><CircleX size={14} /> Fuera de política</span>
             : "Sin ofertas evaluadas"}</dd></div>
+          <div><dt>Guardrails</dt><dd><span className={guardrails.length ? "guardrail-count guardrail-count-active" : "guardrail-count"}><ShieldAlert size={14} /> {guardrails.length}</span>{lastGuardrail && <small> · {eventDetail(lastGuardrail)}</small>}</dd></div>
+          {!ended && dialing?.total_ms != null && <div><dt>Marcado</dt><dd>{secondsLabel(dialing.total_ms)}</dd></div>}
           {!ended && <div><dt>Latencia</dt><dd>{secondsLabel(agentLatencies.at(-1))}{p95Latency != null && <small> · p95 {secondsLabel(p95Latency)}</small>}</dd></div>}
         </dl>
 
@@ -207,7 +226,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
         {eventGroups.length === 0 ? <p className="muted-note">Sin eventos por ahora.</p> : <>
           <ul className="event-list">{visibleGroups.map(group => {
             const meta = highlightedEvents[group.type];
-            const Icon = group.type === "commitment_registered" ? Handshake : group.type === "handoff_created" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
+            const Icon = group.type === "commitment_registered" ? Handshake : group.type === "guardrail_triggered" ? ShieldAlert : group.type === "handoff_created" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
             return <li key={group.key} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}{group.count > 1 && <span className="event-count"> ×{group.count}</span>}</strong>{group.detail && <small>{group.detail}</small>}</div><time>{dateTimeLabel(group.last.created_at)}</time></li>;
           })}</ul>
           {eventGroups.length > VISIBLE_EVENTS && <button type="button" className="text-link events-toggle" onClick={() => setShowAllEvents(value => !value)}>{showAllEvents ? "Ver menos" : `Ver todos (${eventGroups.length})`}</button>}

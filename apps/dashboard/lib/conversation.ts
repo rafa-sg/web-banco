@@ -6,7 +6,7 @@ import type { ConversationEvent, Message } from "@/lib/types";
 export type ResultCategory = "agreed" | "follow_up" | "no_agreement" | "no_contact";
 
 const AGREED = new Set(["PAYMENT_COMMITMENT", "PAYMENT_PLAN_AGREED", "DATE_EXTENSION_AGREED", "PARTIAL_PAYMENT_AGREED", "PAID_DURING_CONTACT", "PENDING_APPROVAL", "ALTERNATIVE_DATE", "PARTIAL_PAYMENT"]);
-const FOLLOW_UP = new Set(["FOLLOW_UP_REQUIRED", "CALLBACK_SCHEDULED", "HUMAN_ESCALATION", "ALREADY_PAID", "MESSAGE_SENT"]);
+const FOLLOW_UP = new Set(["FOLLOW_UP_REQUIRED", "CALLBACK_SCHEDULED", "HUMAN_ESCALATION", "ALREADY_PAID"]);
 const NO_AGREEMENT = new Set(["EXPLICIT_REFUSAL", "DO_NOT_CONTACT", "WRONG_PERSON"]);
 
 export const resultCategoryLabels: Record<ResultCategory, string> = {
@@ -16,7 +16,18 @@ export const resultCategoryLabels: Record<ResultCategory, string> = {
   no_contact: "Sin resultado claro",
 };
 
-/** Un compromiso registrado manda sobre el outcome: si hay recibo, hubo fecha acordada. */
+/** v_conversation_results.bank_result es la fuente de verdad; EN_CURSO → sin categoría todavía. */
+export function bankResultCategory(bankResult: string | null | undefined): ResultCategory | null {
+  switch (bankResult) {
+    case "FECHA_ACORDADA": return "agreed";
+    case "SEGUIMIENTO": return "follow_up";
+    case "SIN_ACUERDO": return "no_agreement";
+    case "SIN_RESULTADO": return "no_contact";
+    default: return null;
+  }
+}
+
+/** Fallback cuando la vista aún no existe. Un compromiso registrado manda sobre el outcome: si hay recibo, hubo fecha acordada. */
 export function resultCategory(outcome: string | null | undefined, hasCommitment = false): ResultCategory | null {
   if (hasCommitment) return "agreed";
   if (!outcome) return null;
@@ -158,6 +169,7 @@ export const highlightedEvents: Record<string, { label: string; tone: EventTone 
   payment_link_created: { label: "Link de pago creado", tone: "info" },
   education_queued: { label: "Contenido educativo en cola", tone: "info" },
   interruption_real: { label: "Interrupción del cliente", tone: "warn" },
+  guardrail_triggered: { label: "Guardrail activado", tone: "warn" },
   opt_out_registered: { label: "El cliente pidió no ser contactado", tone: "danger" },
 };
 
@@ -165,8 +177,32 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
+const inputRiskLabels: Record<string, string> = { injection: "Intento de manipulación bloqueado", sensitive_data: "Dato sensible enmascarado", abuse: "Lenguaje irrespetuoso detectado" };
+const outputViolationLabels: Record<string, string> = {
+  threat: "amenaza", unauthorized_promise: "promesa no autorizada", asks_sensitive: "solicitud de dato sensible", leak: "información interna", url: "enlace no permitido",
+};
+
+/** G2 entrada · G3 desvío de tema · G4 salida del agente. */
+export function guardrailDetail(payload: Record<string, unknown>): string {
+  const layer = typeof payload.capa === "string" ? payload.capa : null;
+  const type = typeof payload.tipo === "string" ? payload.tipo : "";
+  let text: string;
+  if (layer === "G2") text = inputRiskLabels[type] ?? "Entrada bloqueada";
+  else if (layer === "G3") {
+    const n = typeof payload.n === "number" ? payload.n : null;
+    text = type === "abuse" ? `Trato irrespetuoso${n ? ` ${n}/2` : ""}` : `Desvío de tema${n ? ` ${n}/3` : ""}`;
+    if (typeof payload.resumen === "string" && payload.resumen) text += ` · ${payload.resumen}`;
+  } else if (layer === "G4") {
+    const kinds = [...new Set((Array.isArray(payload.violaciones) ? payload.violaciones : []).map(item => String(record(item).kind ?? "")))].filter(Boolean);
+    const blocked = kinds.filter(kind => kind !== "unvalidated_date").map(kind => outputViolationLabels[kind] ?? humanize(kind).toLowerCase());
+    text = [blocked.length ? `Frase bloqueada: ${blocked.join(", ")}` : null, kinds.includes("unvalidated_date") ? "Fecha no validada → se forzó validación" : null].filter(Boolean).join(" · ") || "Salida corregida";
+  } else text = "Regla de seguridad aplicada";
+  return layer ? `${layer} · ${text}` : text;
+}
+
 export function eventDetail(event: ConversationEvent): string | null {
   const payload = record(event.payload);
+  if (event.event_type === "guardrail_triggered") return guardrailDetail(payload);
   if (event.event_type === "offer_rejected") {
     const errors = Array.isArray(payload.errors) ? payload.errors.map(code => policyErrorLabel(String(code))) : [];
     return [payload.offer_code, ...errors].filter(Boolean).join(" · ") || null;
@@ -192,7 +228,8 @@ export function groupHighlightedEvents(events: ConversationEvent[]): EventGroup[
     if (!highlightedEvents[event.event_type]) continue;
     const detail = eventDetail(event);
     const previous = groups.at(-1);
-    if (previous && previous.type === event.event_type) {
+    // Guardrails distintos no se funden: cada capa/motivo cuenta para la auditoría.
+    if (previous && previous.type === event.event_type && (event.event_type !== "guardrail_triggered" || previous.detail === detail)) {
       previous.count += 1;
       previous.last = event;
       previous.detail = detail ?? previous.detail;

@@ -2,7 +2,7 @@ import { BadgeDollarSign, CalendarCheck, CircleCheck, CircleGauge, Handshake, In
 import { CohortChart, DailyChart } from "@/components/impact/impact-charts";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import { bandToGrade, channelLabels, cohortLabels, gradeColors, humanize, money, percentage, sentimentLabels } from "@/lib/prevention";
-import { resultCategory, todayInElSalvador } from "@/lib/conversation";
+import { bankResultCategory, resultCategory, todayInElSalvador } from "@/lib/conversation";
 import { getImpactData, getPromiseKpiData } from "@/lib/supabase/queries";
 import type { Grade } from "@/lib/types";
 
@@ -21,7 +21,10 @@ export default async function ImpactPage() {
   const today = todayInElSalvador();
   const promisesToday = promises.commitments.filter(row => todayInElSalvador(new Date(row.created_at)) === today);
   const amountCommitted = promises.commitments.filter(row => row.status !== "cancelled" && row.status !== "broken").reduce((sum, row) => sum + (row.amount ?? 0), 0);
-  const clearCalls = promises.voiceCalls.filter(row => { const category = resultCategory(row.outcome, Boolean(row.commitment_id)); return category != null && category !== "no_contact"; }).length;
+  const clearCalls = promises.voiceCalls.filter(row => {
+    const category = "outcome" in row ? resultCategory(row.outcome, Boolean(row.commitment_id)) : bankResultCategory(row.bank_result);
+    return category != null && category !== "no_contact";
+  }).length;
   const clearRate = promises.voiceCalls.length ? (clearCalls / promises.voiceCalls.length) * 100 : null;
 
   const control = data.cohorts.find(row => row.cohort === "grupo_control");
