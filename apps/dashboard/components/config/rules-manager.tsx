@@ -100,12 +100,20 @@ function RuleCard({ rule, facts, offers }: { rule: CollectionRule; facts: FactDe
     const outcome = await action();
     if (!outcome.ok) { rollback(); setError(outcome.error); } else setError(null);
   });
+  // Cambiar la prioridad reordena qué regla gana: se guarda solo con confirmación explícita, nunca al salir del campo.
+  const priorityDirty = priority !== String(rule.priority);
+  const savePriority = () => {
+    if (!priorityDirty || priority.trim() === "" || Number.isNaN(Number(priority))) return;
+    const previous = String(rule.priority);
+    run(() => setRulePriority(rule.id, Number(priority)), () => setPriority(previous));
+  };
 
   return <article className={`rule-card ${active ? "" : "rule-card-inactive"}`}>
     <div className="rule-card-head">
       <span className={`effect-badge ${blocking ? "effect-block" : "effect-allow"}`}>{blocking ? <Ban size={13} /> : <ShieldCheck size={13} />}{blocking ? "Bloquea" : "Permite"}</span>
-      <div className="rule-card-title"><strong>{rule.name}</strong><small>{rule.key}{rule.playbook_key ? ` · ${humanize(rule.playbook_key)}` : ""}</small></div>
-      <label className="priority-field">Prioridad<input type="number" value={priority} onChange={event => setPriority(event.target.value)} onBlur={() => { if (priority !== String(rule.priority)) { const previous = String(rule.priority); run(() => setRulePriority(rule.id, Number(priority)), () => setPriority(previous)); } }} disabled={pending} /></label>
+      <div className="rule-card-title" title={rule.key}><strong>{rule.name}</strong>{rule.playbook_key && <small>Guion: {humanize(rule.playbook_key)}</small>}</div>
+      <label className="priority-field">Prioridad<input type="number" value={priority} onChange={event => setPriority(event.target.value)} onKeyDown={event => { if (event.key === "Enter") savePriority(); if (event.key === "Escape") setPriority(String(rule.priority)); }} disabled={pending} /></label>
+      {priorityDirty && <span className="priority-actions"><Button size="sm" onClick={savePriority} disabled={pending}>Guardar</Button><Button size="sm" variant="ghost" onClick={() => setPriority(String(rule.priority))} disabled={pending}>Descartar</Button></span>}
       <Toggle checked={active} label={`${active ? "Desactivar" : "Activar"} ${rule.name}`} disabled={pending} onChange={value => { setActive(value); run(() => setRuleActive(rule.id, value), () => setActive(!value)); }} />
     </div>
     {rule.description && <p className="rule-description">{rule.description}</p>}

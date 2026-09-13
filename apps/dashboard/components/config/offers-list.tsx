@@ -15,11 +15,11 @@ function OfferCard({ offer }: { offer: Offer }) {
 
   return <article className={`panel offer-card ${active ? "" : "rule-card-inactive"}`}>
     <div className="rule-card-head">
-      <div className="rule-card-title"><strong>{offer.name}</strong><small>{offer.code} · {humanize(offer.offer_type)}</small></div>
+      <div className="rule-card-title" title={offer.code}><strong>{offer.name}</strong><small>{humanize(offer.offer_type)}</small></div>
       <Toggle checked={active} label={`${active ? "Desactivar" : "Activar"} ${offer.name}`} disabled={pending} onChange={value => { setActive(value); start(async () => { const result = await setOfferActive(offer.id, value); if (!result.ok) { setActive(!value); setError(result.error); } else setError(null); }); }} />
     </div>
     {offer.description && <p className="rule-description">{offer.description}</p>}
-    {params.length > 0 && <div className="param-chips">{params.map(([key, value]) => <span key={key} className="param-chip"><b>{humanize(key)}</b>{typeof value === "object" ? JSON.stringify(value) : String(value)}</span>)}</div>}
+    {params.length > 0 && <div className="param-chips">{params.map(([key, value]) => <span key={key} className="param-chip"><b>{humanize(key)}</b>{Array.isArray(value) ? value.map(item => humanize(String(item))).join(", ") : typeof value === "object" && value ? Object.entries(value).map(([k, v]) => `${humanize(k)}: ${String(v)}`).join(" · ") : typeof value === "boolean" ? (value ? "Sí" : "No") : String(value)}</span>)}</div>}
     <div className="offer-flags">
       {offer.requires_approval && <span className="flag-warn"><BadgeCheck size={13} /> Requiere aprobación</span>}
       {offer.generates_payment_link && <span className="flag-info"><Link2 size={13} /> Genera link de pago</span>}

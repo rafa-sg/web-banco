@@ -8,6 +8,7 @@ import { assignEscalation, resolveEscalation } from "@/app/(app)/configuracion/a
 import { dateTimeLabel, humanize } from "@/lib/prevention";
 import type { OpenEscalation } from "@/lib/types";
 
+const triggerLabels: Record<string, string> = { AGENT_TOOL: "Derivado por el agente", REQUESTS_HUMAN: "El cliente pidió una persona", DISPUTE: "Disputa", POSSIBLE_FRAUD: "Posible fraude" };
 const priorityLabels: Record<string, string> = { high: "Alta", medium: "Media", low: "Baja", urgent: "Urgente" };
 
 function EscalationCard({ item }: { item: OpenEscalation }) {
@@ -21,7 +22,7 @@ function EscalationCard({ item }: { item: OpenEscalation }) {
   return <article className={`panel escalation-card ${resolved ? "rule-card-inactive" : ""}`}>
     <div className="rule-card-head">
       <span className={`effect-badge ${item.priority === "high" || item.priority === "urgent" ? "effect-block" : "effect-allow"}`}><Headphones size={13} />{priorityLabels[item.priority ?? ""] ?? humanize(item.priority)}</span>
-      <div className="rule-card-title"><Link href={`/clientes/${item.customer_id}`}><strong>{item.customer_name}</strong></Link><small>{item.reason ?? "Sin motivo"}{item.trigger ? ` · ${item.trigger}` : ""}</small></div>
+      <div className="rule-card-title"><Link href={`/clientes/${item.customer_id}`}><strong>{item.customer_name}</strong></Link><small title={item.trigger ?? undefined}>{item.reason ?? "Sin motivo"}{item.trigger ? ` · ${triggerLabels[item.trigger] ?? humanize(item.trigger)}` : ""}</small></div>
       <span className={`status-pill ${resolved ? "status-done" : "status-open"}`}>{resolved ? "Resuelta" : humanize(item.status)}</span>
     </div>
     <div className="rule-card-foot">

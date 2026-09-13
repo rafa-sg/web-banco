@@ -29,6 +29,20 @@ export async function setRuleConditions(id: string, conditions: Condition[]) {
   return update("collection_rules", id, { conditions: { all: conditions } });
 }
 
+const CONTACT_CHANNELS = new Set(["email", "voice", "human"]);
+
+/** Canal por grado de la política activa: lo lee run_prevention en la BD (no hay lógica de canal en la web). */
+export async function setChannelByGrade(policyId: string, channelByGrade: Record<string, string>) {
+  const grades = ["A", "B", "C", "D", "E"];
+  if (!grades.every(grade => CONTACT_CHANNELS.has(channelByGrade[grade]))) return { ok: false, error: "Cada grado necesita un canal válido: correo, llamada o asesor." } as ActionResult;
+  return update("agent_policies", policyId, { channel_by_grade: Object.fromEntries(grades.map(grade => [grade, channelByGrade[grade]])) });
+}
+
+export async function setRunLimits(policyId: string, limits: { maxCallsPerRun: number; emailFallback: boolean }) {
+  if (!Number.isInteger(limits.maxCallsPerRun) || limits.maxCallsPerRun < 0 || limits.maxCallsPerRun > 50) return { ok: false, error: "Las llamadas por corrida deben ser un entero entre 0 y 50." } as ActionResult;
+  return update("agent_policies", policyId, { max_calls_per_run: limits.maxCallsPerRun, email_fallback: limits.emailFallback });
+}
+
 export async function setOfferActive(id: string, isActive: boolean) {
   return update("offers", id, { is_active: isActive });
 }
