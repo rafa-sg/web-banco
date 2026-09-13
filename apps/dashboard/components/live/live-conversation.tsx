@@ -249,7 +249,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
         {eventGroups.length === 0 ? <p className="muted-note">Sin eventos por ahora.</p> : <>
           <ul className="event-list">{visibleGroups.map(group => {
             const meta = highlightedEvents[group.type];
-            const Icon = group.type === "commitment_registered" ? Handshake : group.type === "guardrail_triggered" ? ShieldAlert : group.type === "handoff_created" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
+            const Icon = group.type === "commitment_registered" ? Handshake : group.type === "guardrail_triggered" ? ShieldAlert : group.type === "handoff_created" || group.type === "handoff_completed" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
             return <li key={group.key} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}{group.count > 1 && <span className="event-count"> ×{group.count}</span>}</strong>{group.detail && <small>{group.detail}</small>}</div><time>{timeLabel(group.last.created_at)}</time></li>;
           })}</ul>
           {eventGroups.length > VISIBLE_EVENTS && <button type="button" className="text-link events-toggle" onClick={() => setShowAllEvents(value => !value)}>{showAllEvents ? "Ver menos" : `Ver todos (${eventGroups.length})`}</button>}
