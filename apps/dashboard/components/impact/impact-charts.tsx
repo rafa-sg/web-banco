@@ -42,3 +42,30 @@ export function DailyChart({ data }: { data: DailyMetric[] }) {
     </ResponsiveContainer>
   </div>;
 }
+
+export type ChannelRate = { channel: string; label: string; color: string; conversations: number; response: number | null; commitment: number | null; kept: number | null };
+
+const RATE_METRICS = [
+  { key: "response", label: "Contestan" },
+  { key: "commitment", label: "Llegan a compromiso" },
+  { key: "kept", label: "Cumplen" },
+] as const;
+
+/** Canales comparados en las mismas 3 tasas: un grupo por métrica, una barra por canal (color fijo por canal). */
+export function ChannelChart({ channels }: { channels: ChannelRate[] }) {
+  const rows = RATE_METRICS.map(metric => ({ metric: metric.label, ...Object.fromEntries(channels.map(channel => [channel.channel, channel[metric.key] ?? 0])) }));
+  const describe = channels.map(channel => `${channel.label}: contestan ${channel.response ?? 0}%, compromiso ${channel.commitment ?? 0}%, cumplen ${channel.kept ?? 0}%`).join(". ");
+  return <div className="impact-chart" role="img" aria-label={describe}>
+    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <BarChart data={rows} margin={{ top: 24, right: 8, left: -18, bottom: 0 }} barGap={2} accessibilityLayer>
+        <CartesianGrid stroke="#ecece8" vertical={false} strokeDasharray="3 5" />
+        <XAxis dataKey="metric" axisLine={false} tickLine={false} tick={axisTick} dy={8} />
+        <YAxis axisLine={false} tickLine={false} tick={axisTick} unit="%" domain={[0, 100]} />
+        <Tooltip cursor={{ fill: "#f5f5f0" }} contentStyle={tooltipStyle} formatter={(value, name) => [`${value}%`, channels.find(channel => channel.channel === name)?.label ?? name]} />
+        {channels.map(channel => <Bar key={channel.channel} dataKey={channel.channel} name={channel.channel} fill={channel.color} radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false}>
+          <LabelList dataKey={channel.channel} position="top" formatter={(value: unknown) => `${value}%`} style={{ fontSize: 12, fontWeight: 600, fill: "#2c2a29" }} />
+        </Bar>)}
+      </BarChart>
+    </ResponsiveContainer>
+  </div>;
+}
