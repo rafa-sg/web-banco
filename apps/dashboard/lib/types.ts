@@ -261,7 +261,7 @@ export type AgentPolicy = {
   default_models: Record<string, string> | null; max_offers_presented: number | null; max_turns_per_conversation: number | null;
   max_contacts_per_week: number | null; cooldown_hours: number | null; quiet_hours: { start?: string; end?: string } | null; forbidden_weekdays: number[] | null;
   live_contact_allowlist_only: boolean; payment_link_ttl_hours: number | null; risk_weights: Record<string, number> | null;
-  risk_bands: Record<string, [number, number]> | null; global_transitions: { id?: string; label?: string; go_to?: string; instruction?: string }[] | null;
+  risk_bands: Record<string, [number, number]> | null; channel_by_grade: Record<string, string> | null; email_fallback: boolean | null; max_calls_per_run: number | null; global_transitions: { id?: string; label?: string; go_to?: string; instruction?: string }[] | null;
   prohibited_phrases: string[] | null; updated_at: string | null;
 };
 export type PendingCommitment = { id: string; customer_id: string; offer_code: string | null; commitment_type: string; amount: number | null; committed_date: string | null; terms_text: string | null; status: string; created_at: string; customer_name: string };

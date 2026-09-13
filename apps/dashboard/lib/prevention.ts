@@ -22,9 +22,54 @@ export const actionLabels: Record<string, string> = {
   BLOCKED: "Bloqueado",
 };
 
+export const productLabels: Record<string, string> = {
+  PERSONAL: "Personal", AGRICOLA_AVIO: "Agrícola de avío", PYME: "Pyme", MICROCREDITO: "Microcrédito", VIVIENDA: "Vivienda",
+};
+
+export const paceLabels: Record<string, string> = { slow: "Pausado", normal: "Normal", fast: "Rápido" };
+
+export const decisionLabels: Record<string, string> = {
+  stay: "Seguir en la etapa", advance: "Avanzar de etapa", jump: "Saltar de etapa", escalate: "Escalar a una persona", end: "Cerrar la conversación", ignored: "Sin cambio",
+};
+
+/** Canal de contacto por grado: sale de agent_policies.channel_by_grade; A–B correo y C–E llamada si la política no lo define. */
+export function contactChannelFor(grade: Grade | null, channelByGrade: Record<string, string> | null | undefined): "email" | "voice" | null {
+  if (!grade) return null;
+  const channel = channelByGrade?.[grade] ?? (grade === "A" || grade === "B" ? "email" : "voice");
+  return channel === "email" ? "email" : channel === "voice" ? "voice" : null;
+}
+
+/** Motivo por el que no se puede contactar desde la web (el agente vuelve a validar todo en la BD). */
+export function contactBlockReason(row: { is_control_group: boolean; opted_out: boolean; contact_enabled: boolean }) {
+  if (row.is_control_group) return "Grupo de control: no se contacta";
+  if (row.opted_out) return "El cliente pidió no ser contactado";
+  if (!row.contact_enabled) return "Contacto deshabilitado para este cliente";
+  return null;
+}
+
 export function money(amount: number | null | undefined) {
   if (amount == null) return "—";
   return new Intl.NumberFormat("es-SV", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(amount);
+}
+
+/** Costos técnicos: centavos de dólar pierden información con 2 decimales. */
+export function costLabel(amount: number | null | undefined) {
+  if (amount == null) return "—";
+  if (amount > 0 && amount < 0.01) return `US$${amount.toFixed(4)}`;
+  return money(amount);
+}
+
+/** Variación con un solo signo: −1.0 / +2.5 / 0.0. */
+export function signedLabel(value: number | null | undefined, decimals = 1) {
+  if (value == null) return "—";
+  const fixed = Math.abs(value).toFixed(decimals);
+  if (Number(fixed) === 0) return fixed;
+  return `${value < 0 ? "−" : "+"}${fixed}`;
+}
+
+/** Plantillas con variables sin reemplazar ("{monto}") no son condiciones aceptadas por el cliente. */
+export function unresolvedPlaceholders(text: string | null | undefined) {
+  return [...new Set(text?.match(/\{[a-z_]+\}/gi) ?? [])];
 }
 
 export function percentage(value: number | null | undefined, decimals = 0) {
@@ -32,16 +77,17 @@ export function percentage(value: number | null | undefined, decimals = 0) {
   return `${value.toFixed(decimals)}%`;
 }
 
-export function dateLabel(value: string | null | undefined) {
+export function dateLabel(value: string | null | undefined, withYear = false) {
   if (!value) return "—";
+  const options: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", ...(withYear ? { year: "numeric" } : {}) };
   // Columnas date (YYYY-MM-DD) se parsean como medianoche UTC: formatearlas en El Salvador las corre un día atrás.
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
-  return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", timeZone: "America/El_Salvador" }).format(new Date(value));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Intl.DateTimeFormat("es-SV", { ...options, timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  return new Intl.DateTimeFormat("es-SV", { ...options, timeZone: "America/El_Salvador" }).format(new Date(value));
 }
 
-export function dateTimeLabel(value: string | null | undefined) {
+export function dateTimeLabel(value: string | null | undefined, withYear = false) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/El_Salvador" }).format(new Date(value));
+  return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", ...(withYear ? { year: "numeric" } : {}), hour: "2-digit", minute: "2-digit", timeZone: "America/El_Salvador" }).format(new Date(value));
 }
 
 export function dueLabel(daysToDue: number | null, daysPastDue: number | null) {
@@ -50,6 +96,13 @@ export function dueLabel(daysToDue: number | null, daysPastDue: number | null) {
   if (daysToDue === 0) return "Vence hoy";
   if (daysToDue < 0) return `${Math.abs(daysToDue)}d de atraso`;
   return `En ${daysToDue}d`;
+}
+
+/** +50379117074 → +503 7911 7074 (El Salvador); otros formatos se muestran tal cual. */
+export function phoneLabel(phone: string | null | undefined) {
+  if (!phone) return null;
+  const sv = phone.match(/^\+503(\d{4})(\d{4})$/);
+  return sv ? `+503 ${sv[1]} ${sv[2]}` : phone;
 }
 
 export function initials(name: string) {

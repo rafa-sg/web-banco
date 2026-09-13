@@ -16,7 +16,7 @@ export async function getKpis(): Promise<Kpis | null> {
 export async function getCustomerOverview(): Promise<CustomerOverview[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("v_customer_overview").select("*");
-  if (error) return [];
+  if (error) failQuery("los clientes", error);
   return (data ?? []) as CustomerOverview[];
 }
 
@@ -30,14 +30,14 @@ export async function getRiskDistribution(): Promise<RiskDistributionRow[]> {
 export async function getLiveConversations(): Promise<LiveConversation[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("v_live_conversations").select("*").order("started_at", { ascending: false });
-  if (error) return [];
+  if (error) failQuery("las conversaciones en curso", error);
   return (data ?? []) as LiveConversation[];
 }
 
 export async function getCustomerById(customerId: string): Promise<CustomerOverview | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("v_customer_overview").select("*").eq("customer_id", customerId).maybeSingle();
-  if (error) return null;
+  if (error) failQuery("el cliente", error);
   return data as CustomerOverview | null;
 }
 
@@ -65,7 +65,7 @@ export async function getConversationTimeline(conversationId: string): Promise<C
 export async function getConversation(conversationId: string): Promise<ConversationRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("conversations").select("id, customer_id, playbook_id, channel, status, current_stage, turn_count, outcome, outcome_reason, summary, commitment_id, terms_presented, risk_before, risk_after, cost_usd, duration_ms, avg_latency_ms, p95_latency_ms, interruption_count, started_at, ended_at").eq("id", conversationId).maybeSingle();
-  if (error) return null;
+  if (error) failQuery("la conversación", error);
   return data as ConversationRow | null;
 }
 
@@ -104,12 +104,22 @@ export async function getCurrentUserEmail(): Promise<string | null> {
   return data.user?.email ?? null;
 }
 
-async function selectAll<T>(table: string, columns = "*", build?: (query: any) => any): Promise<T[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
+/** Consultas principales: un error se muestra como error (app/error.tsx), nunca como "0 clientes". */
+function failQuery(scope: string, error: { message: string }): never {
+  throw new Error(`No se pudo consultar ${scope}: ${error.message}`);
+}
+
+/** Consultas secundarias (paneles de Impacto y Configuración): degradan a vacío, pero el fallo queda en el log del servidor. */
+async function selectAll<T>(table: string, columns = "*", build?: (query: any) => any, required = false): Promise<T[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const supabase = await createClient();
   let query = supabase.from(table).select(columns);
   if (build) query = build(query);
   const { data, error } = await query;
-  if (error) return [];
+  if (error) {
+    if (required) failQuery(table, error);
+    console.error(`[queries] ${table}: ${error.message}`);
+    return [];
+  }
   return (data ?? []) as T[];
 }
 
@@ -125,7 +135,7 @@ export async function getImpactData() {
     selectAll<SentimentShift>("v_sentiment_shift", "*", query => query.order("conversations", { ascending: false })),
     selectAll<ModelPerformance>("v_model_performance", "*", query => query.order("role")),
     selectAll<OutcomeDefinition>("outcome_definitions", "*", query => query.order("sort_order")),
-    selectAll<{ customer_id: string; channel: string; outcome: string | null }>("conversations", "customer_id, channel, outcome"),
+    selectAll<{ id: string; customer_id: string; channel: string; outcome: string | null; risk_before: number | null }>("conversations", "id, customer_id, channel, outcome, risk_before"),
     selectAll<{ customer_id: string; risk_band: RiskBand | null }>("v_customer_overview", "customer_id, risk_band"),
   ]);
   return { kpis, cohorts, channels, rules, offers, stages, daily, sentiment, models, outcomes, conversations, customers };
@@ -203,7 +213,7 @@ export async function getCustomerCommitments(customerId: string) {
 
 export async function getCommitmentList(): Promise<CommitmentListItem[]> {
   const [rows, offers] = await Promise.all([
-    selectAll<Commitment>("commitments", COMMITMENT_COLUMNS, query => query.order("created_at", { ascending: false }).limit(1000)),
+    selectAll<Commitment>("commitments", COMMITMENT_COLUMNS, query => query.order("created_at", { ascending: false }), true),
     selectAll<{ code: string; name: string }>("offers", "code, name"),
   ]);
   const ids = [...new Set(rows.map(row => row.customer_id))];
@@ -211,6 +221,12 @@ export async function getCommitmentList(): Promise<CommitmentListItem[]> {
   const byId = new Map(customers.map(row => [row.id, row]));
   const offerNames = new Map(offers.map(offer => [offer.code, offer.name]));
   return rows.map(row => ({ ...row, customer_name: byId.get(row.customer_id)?.full_name ?? "Cliente", customer_code: byId.get(row.customer_id)?.customer_code ?? null, offer_name: offerNames.get(row.offer_code) ?? null }));
+}
+
+/** Destino real del contacto (teléfono/correo de prueba del equipo). v_customer_overview no expone estas columnas. */
+export async function getCustomerContact(customerId: string) {
+  const rows = await selectAll<{ phone_e164: string | null; email: string | null }>("customers", "phone_e164, email", query => query.eq("id", customerId).limit(1));
+  return rows[0] ?? null;
 }
 
 export async function getOfferNames() {
@@ -229,7 +245,7 @@ export async function getConversationResult(conversationId: string): Promise<Con
 export async function getPromiseKpiData() {
   const supabase = await createClient();
   const [commitments, results] = await Promise.all([
-    selectAll<{ status: string; amount: number | null; created_at: string }>("commitments", "status, amount, created_at"),
+    selectAll<{ status: string; amount: number | null; created_at: string; conversation_id: string | null }>("commitments", "status, amount, created_at, conversation_id"),
     // Llamadas de voz terminadas: base para "% con resultado claro".
     supabase.from("v_conversation_results").select("bank_result").eq("channel", "voice").not("ended_at", "is", null),
   ]);
