@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircleCheck, Play, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { runDetection, type RunResult } from "@/app/(app)/actions";
+import { startPreventionRun, type RunResult } from "@/app/(app)/actions";
 
 export function RunButton() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export function RunButton() {
 
   function confirm() {
     startTransition(async () => {
-      const outcome = await runDetection();
+      const outcome = await startPreventionRun();
       setResult(outcome);
       setOpen(false);
       if (outcome.ok) router.refresh();
@@ -27,19 +28,21 @@ export function RunButton() {
     {open && <div className="modal-backdrop" role="presentation" onClick={() => !pending && setOpen(false)}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="run-title" onClick={event => event.stopPropagation()}>
         <div className="modal-heading"><h2 id="run-title">Iniciar corrida de prevención</h2><button className="icon-link" aria-label="Cerrar" onClick={() => setOpen(false)} disabled={pending}><X size={16} /></button></div>
-        <p>Recalcula el riesgo con los datos actuales y crea las intervenciones que correspondan según las reglas activas.</p>
+        <p>Recalcula el riesgo con los datos actuales, decide la mejor intervención para cada cliente y la ejecuta.</p>
         <ul className="modal-rules">
-          <li>Grados C, D y E</li>
-          <li>Excluye clientes bloqueados (opt-out, disputa, frecuencia)</li>
-          <li>El grupo de control se excluye siempre</li>
+          <li>Grados C, D y E: llama el agente de voz</li>
+          <li>Grados A y B: correo preventivo con recordatorio y video</li>
+          <li>Si no contesta o no se le puede llamar: correo de seguimiento</li>
+          <li>Excluye bloqueados (opt-out, disputa, frecuencia) y el grupo de control</li>
         </ul>
-        <div className="modal-actions"><Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button><Button onClick={confirm} disabled={pending}>{pending ? "Calculando…" : "Confirmar corrida"}</Button></div>
+        <div className="modal-actions"><Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button><Button onClick={confirm} disabled={pending}>{pending ? "Calculando y despachando…" : "Confirmar corrida"}</Button></div>
       </div>
     </div>}
 
     {result && <div className={`toast ${result.ok ? "toast-ok" : "toast-error"}`} role="status">
       {result.ok ? <CircleCheck size={17} /> : <TriangleAlert size={17} />}
       <span>{result.ok ? result.summary : `No se pudo iniciar la corrida: ${result.error}`}</span>
+      {result.ok && result.live && <Link href="/en-vivo" className="icon-link">Ver en vivo</Link>}
       <button aria-label="Cerrar aviso" onClick={() => setResult(null)}><X size={15} /></button>
     </div>}
   </>;
