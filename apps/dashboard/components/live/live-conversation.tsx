@@ -7,11 +7,12 @@ import { ArrowLeft, Bot, CircleCheck, CircleDashed, CircleX, Cog, Handshake, Sci
 import { CommitmentCard, NoCommitmentCard } from "@/components/commitments/commitment-card";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import { Elapsed } from "@/components/live/elapsed";
+import { HangupButton } from "@/components/live/hangup-button";
 import { createClient } from "@/lib/supabase/client";
 import {
   bankResultCategory, durationLabel, eventDetail, groupHighlightedEvents, highlightedEvents, parseToolMessage, resultCategory, resultCategoryLabels, secondsLabel, stageChanges,
 } from "@/lib/conversation";
-import { bandToGrade, channelLabels, dateTimeLabel, humanize, intentLabels, money, outcomeLabels, sentimentLabels } from "@/lib/prevention";
+import { bandToGrade, channelLabels, costLabel, dateTimeLabel, decisionLabels, humanize, intentLabels, money, outcomeLabels, paceLabels, sentimentLabels } from "@/lib/prevention";
 import type { Commitment, ConversationResult, ConversationEvent, ConversationRow, CustomerOverview, Message, ModelCost, PaymentLink, PlaybookStage, TurnEvaluation } from "@/lib/types";
 
 const VISIBLE_EVENTS = 8;
@@ -27,6 +28,16 @@ function percentile(values: number[], p: number) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)];
+}
+
+function timeLabel(value: string) {
+  return new Intl.DateTimeFormat("es-SV", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/El_Salvador" }).format(new Date(value));
+}
+
+function riskDelta(before: number | null, after: number | null) {
+  if (before == null || after == null) return "—";
+  const delta = after - before;
+  return delta === 0 ? "Sin cambio" : `${delta < 0 ? "Bajó" : "Subió"} ${Math.abs(delta)}`;
 }
 
 function ToolChipRow({ message }: { message: Message }) {
@@ -107,6 +118,12 @@ export function LiveConversation({ conversation: initialConversation, customer, 
   const category = ended ? bankResultCategory(result?.bank_result) ?? resultCategory(conversation.outcome, Boolean(commitment)) : null;
 
   const lastOffer = [...events].reverse().find(event => event.event_type === "offer_validated" || event.event_type === "offer_rejected");
+  const lastValidOffer = [...events].reverse().find(event => event.event_type === "offer_validated");
+  const customerAccepted = evaluations.some(evaluation => evaluation.commitment_signal === "explicit");
+  // Señales de acuerdo sin registro: se marca para revisión humana, nunca se convierte en promesa.
+  const agreementHint = ended && !commitment && (lastValidOffer || customerAccepted)
+    ? [lastValidOffer ? `Hubo una oferta dentro de política (${eventDetail(lastValidOffer) ?? "sin detalle"}).` : null, customerAccepted ? "El cliente dio señales explícitas de aceptar." : null].filter(Boolean).join(" ")
+    : null;
   const eventGroups = useMemo(() => groupHighlightedEvents(events), [events]);
   const visibleGroups = showAllEvents ? eventGroups : eventGroups.slice(-VISIBLE_EVENTS);
   const stageHistory = useMemo(() => stageChanges(events), [events]);
@@ -144,17 +161,23 @@ export function LiveConversation({ conversation: initialConversation, customer, 
       <span className="live-banner-meta">{channelLabels[conversation.channel] ?? conversation.channel} · {conversation.turn_count} turnos</span>
       <Elapsed since={conversation.started_at} until={conversation.ended_at} />
       <span className={`live-status ${connected ? "live-status-live" : "live-status-connecting"}`}><i />{connected ? "En tiempo real" : "Conectando…"}</span>
+      {!ended && conversation.channel === "voice" && <HangupButton conversationId={conversation.id} customerName={customer?.full_name ?? "el cliente"} variant="default" />}
     </div>
 
     {category && <section className={`result-banner result-${category}`} aria-label="Resultado final">
       <span className="eyebrow">RESULTADO FINAL</span>
       <strong>{resultCategoryLabels[category]}</strong>
       <span className="result-outcome">{humanize(conversation.outcome, outcomeLabels)}{conversation.outcome_reason ? ` · ${conversation.outcome_reason}` : ""}</span>
+      <div className="result-facts">
+        <span>Promesa registrada: <b>{commitment ? `Sí · ${commitment.receipt_code}` : "No"}</b></span>
+        {agreementHint && <span className="result-fact-warn"><TriangleAlert size={13} /> Acuerdo por verificar</span>}
+        <span>{channelLabels[conversation.channel] ?? conversation.channel} · {durationLabel(durationMs)} min · cerró {dateTimeLabel(conversation.ended_at, true)}</span>
+      </div>
     </section>}
 
     {commitment
       ? <CommitmentCard commitment={commitment} links={commitmentLinks} offerName={offerNames[commitment.offer_code] ?? null} />
-      : ended && <NoCommitmentCard outcome={conversation.outcome} reason={conversation.outcome_reason} summary={conversation.summary} />}
+      : ended && <NoCommitmentCard outcome={conversation.outcome} reason={conversation.outcome_reason} summary={conversation.summary} agreementHint={agreementHint} />}
 
     {ended && <section className="closing-card closing-metrics" aria-label="Métricas de la conversación">
       <div><span className="eyebrow">LATENCIA PROM.</span><strong>{secondsLabel(avgLatency)}</strong></div>
@@ -164,8 +187,8 @@ export function LiveConversation({ conversation: initialConversation, customer, 
       <div><span className="eyebrow">DURACIÓN</span><strong>{durationLabel(durationMs)}</strong>{dialing?.total_ms != null && <small>Marcado: {secondsLabel(dialing.total_ms)}</small>}</div>
       <div><span className="eyebrow">GUARDRAILS</span><strong>{guardrails.length}</strong><small>{guardrails.length ? "Intervenciones de seguridad" : "Sin activaciones"}</small></div>
       <div><span className="eyebrow">RIESGO</span><strong>{conversation.risk_before ?? "—"} → {conversation.risk_after ?? "—"}</strong></div>
-      <div><span className="eyebrow">COSTO</span><strong>{conversation.cost_usd != null ? money(conversation.cost_usd) : "—"}</strong>{Object.keys(costByRole).length > 1 && <small>{Object.entries(costByRole).map(([role, cost]) => `${role} $${cost.toFixed(4)}`).join(" · ")}</small>}</div>
-      <div><span className="eyebrow">CIERRE</span><strong>{dateTimeLabel(conversation.ended_at)}</strong></div>
+      <div><span className="eyebrow">COSTO</span><strong>{costLabel(conversation.cost_usd)}</strong>{Object.keys(costByRole).length > 1 && <small>{Object.entries(costByRole).map(([role, cost]) => `${role} $${cost.toFixed(4)}`).join(" · ")}</small>}</div>
+      <div><span className="eyebrow">CAMBIO DE RIESGO</span><strong>{riskDelta(conversation.risk_before, conversation.risk_after)}</strong><small>Puntaje 0–100</small></div>
     </section>}
 
     {ended && commitment && conversation.summary && <p className="conversation-summary"><b>Resumen:</b> {conversation.summary}</p>}
@@ -203,12 +226,12 @@ export function LiveConversation({ conversation: initialConversation, customer, 
           <div><dt>Etapa</dt><dd>{stageName(currentStageKey)}</dd></div>
           <div><dt>Intención</dt><dd>{humanize(latest?.intent, intentLabels)}{latest?.confidence != null && <small> · confianza {Math.round(latest.confidence * 100)}%</small>}</dd></div>
           <div><dt>Sentimiento</dt><dd>{humanize(latest?.sentiment, sentimentLabels)}{latest?.sentiment_score != null && <small> ({latest.sentiment_score.toFixed(2)})</small>}</dd></div>
-          <div><dt>Ritmo</dt><dd>{humanize(latest?.pace)}</dd></div>
-          <div><dt>Siguiente</dt><dd>{humanize(latest?.decision)}</dd></div>
-          <div><dt>Política</dt><dd>{lastOffer
+          <div><dt>Ritmo</dt><dd>{humanize(latest?.pace, paceLabels)}</dd></div>
+          <div><dt>Siguiente</dt><dd>{humanize(latest?.decision, decisionLabels)}</dd></div>
+          <div><dt>Última oferta</dt><dd>{lastOffer
             ? lastOffer.event_type === "offer_validated"
-              ? <span className="policy-ok"><CircleCheck size={14} /> Dentro de límites</span>
-              : <span className="policy-bad"><CircleX size={14} /> Fuera de política</span>
+              ? <span className="policy-ok"><CircleCheck size={14} /> Validada por política</span>
+              : <span className="policy-bad"><CircleX size={14} /> Rechazada por política</span>
             : "Sin ofertas evaluadas"}</dd></div>
           <div><dt>Guardrails</dt><dd><span className={guardrails.length ? "guardrail-count guardrail-count-active" : "guardrail-count"}><ShieldAlert size={14} /> {guardrails.length}</span>{lastGuardrail && <small> · {eventDetail(lastGuardrail)}</small>}</dd></div>
           {!ended && dialing?.total_ms != null && <div><dt>Marcado</dt><dd>{secondsLabel(dialing.total_ms)}</dd></div>}
@@ -218,7 +241,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
         <h3 className="subheading">Recorrido de etapas</h3>
         {stageHistory.length === 0 ? <p className="muted-note">Sin cambios de etapa todavía.</p> :
           <ol className="stage-history">{stageHistory.map(change => <li key={change.id}>
-            <div><strong>{stageName(change.from)} → {stageName(change.to)}</strong><time>{dateTimeLabel(change.at)}</time></div>
+            <div><strong>{stageName(change.from)} → {stageName(change.to)}</strong><time>{timeLabel(change.at)}</time></div>
             {change.rule && <small>Regla: {change.rule}</small>}
           </li>)}</ol>}
 
@@ -227,7 +250,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
           <ul className="event-list">{visibleGroups.map(group => {
             const meta = highlightedEvents[group.type];
             const Icon = group.type === "commitment_registered" ? Handshake : group.type === "guardrail_triggered" ? ShieldAlert : group.type === "handoff_created" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
-            return <li key={group.key} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}{group.count > 1 && <span className="event-count"> ×{group.count}</span>}</strong>{group.detail && <small>{group.detail}</small>}</div><time>{dateTimeLabel(group.last.created_at)}</time></li>;
+            return <li key={group.key} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}{group.count > 1 && <span className="event-count"> ×{group.count}</span>}</strong>{group.detail && <small>{group.detail}</small>}</div><time>{timeLabel(group.last.created_at)}</time></li>;
           })}</ul>
           {eventGroups.length > VISIBLE_EVENTS && <button type="button" className="text-link events-toggle" onClick={() => setShowAllEvents(value => !value)}>{showAllEvents ? "Ver menos" : `Ver todos (${eventGroups.length})`}</button>}
         </>}
