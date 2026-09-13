@@ -167,6 +167,11 @@ export function humanize(value: string | null | undefined, dictionary: Record<st
 }
 
 export function secondsToClock(totalSeconds: number) {
+  // Más de una hora en mm:ss deja de leerse ("136:55"): se muestra en horas y minutos.
+  if (totalSeconds >= 3600) {
+    const hours = Math.floor(totalSeconds / 3600);
+    return `${hours} h ${Math.floor((totalSeconds % 3600) / 60)} min`;
+  }
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const s = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
   return `${m}:${s}`;

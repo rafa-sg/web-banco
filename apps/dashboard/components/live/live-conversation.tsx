@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   bankResultCategory, durationLabel, eventDetail, groupHighlightedEvents, highlightedEvents, parseToolMessage, resultCategory, resultCategoryLabels, secondsLabel, stageChanges,
 } from "@/lib/conversation";
-import { bandToGrade, channelLabels, costLabel, dateTimeLabel, decisionLabels, humanize, intentLabels, money, outcomeLabels, paceLabels, sentimentLabels } from "@/lib/prevention";
+import { bandToGrade, channelLabels, costLabel, dateTimeLabel, decisionLabels, humanize, intentLabels, outcomeLabels, paceLabels, sentimentLabels } from "@/lib/prevention";
 import type { Commitment, ConversationResult, ConversationEvent, ConversationRow, CustomerOverview, Message, ModelCost, PaymentLink, PlaybookStage, TurnEvaluation } from "@/lib/types";
 
 const VISIBLE_EVENTS = 8;
@@ -161,7 +161,7 @@ export function LiveConversation({ conversation: initialConversation, customer, 
       <span className="live-banner-meta">{channelLabels[conversation.channel] ?? conversation.channel} · {conversation.turn_count} turnos</span>
       <Elapsed since={conversation.started_at} until={conversation.ended_at} />
       <span className={`live-status ${connected ? "live-status-live" : "live-status-connecting"}`}><i />{connected ? "En tiempo real" : "Conectando…"}</span>
-      {!ended && conversation.channel === "voice" && <HangupButton conversationId={conversation.id} customerName={customer?.full_name ?? "el cliente"} variant="default" />}
+      {!ended && <HangupButton conversationId={conversation.id} customerName={customer?.full_name ?? "el cliente"} channel={conversation.channel} variant="default" />}
     </div>
 
     {category && <section className={`result-banner result-${category}`} aria-label="Resultado final">

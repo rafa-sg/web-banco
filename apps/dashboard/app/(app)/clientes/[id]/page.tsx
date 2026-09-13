@@ -59,7 +59,6 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
       <div>
         <span className="eyebrow">¿POR QUÉ ESTAMOS CONTACTANDO A…?</span>
         <h1>{customer.full_name}</h1>
-        {customer.demo_notes && <span className="demo-note-badge" title={customer.demo_notes}>{customer.contact_enabled ? "Contacto real de prueba" : "Nota de demo"} · {customer.demo_notes}</span>}
         <p>{customer.customer_code}<span>·</span>{product}<span>·</span>{[customer.city, customer.department].filter(Boolean).join(", ") || "—"}</p>
       </div>
       <div className="customer-heading-actions">

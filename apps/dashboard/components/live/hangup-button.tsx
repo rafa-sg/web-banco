@@ -8,7 +8,9 @@ import { hangupConversation } from "@/app/(app)/actions";
 import { humanize, outcomeLabels } from "@/lib/prevention";
 
 /** "Colgar": pide confirmación y cierra la conversación en el agente para que no quede abierta. */
-export function HangupButton({ conversationId, customerName, variant = "outline" }: { conversationId: string; customerName: string; variant?: "outline" | "default" }) {
+export function HangupButton({ conversationId, customerName, channel = "voice", variant = "outline" }: { conversationId: string; customerName: string; channel?: string; variant?: "outline" | "default" }) {
+  const isCall = channel === "voice";
+  const action = isCall ? "Colgar" : "Cerrar";
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -34,7 +36,7 @@ export function HangupButton({ conversationId, customerName, variant = "outline"
       const outcome = await hangupConversation(conversationId);
       setConfirming(false);
       setMessage(outcome.ok
-        ? { ok: true, text: outcome.alreadyClosed ? "La conversación ya estaba cerrada." : `Llamada finalizada · ${humanize(outcome.outcome, outcomeLabels)}` }
+        ? { ok: true, text: outcome.alreadyClosed ? "La conversación ya estaba cerrada." : `Conversación finalizada · ${humanize(outcome.outcome, outcomeLabels)}` }
         : { ok: false, text: `No se pudo colgar: ${outcome.error}` });
       router.refresh();
     });
@@ -42,19 +44,19 @@ export function HangupButton({ conversationId, customerName, variant = "outline"
 
   return <>
     <Button ref={trigger} size="sm" variant={variant} className="button-danger" onClick={event => { event.preventDefault(); event.stopPropagation(); setMessage(null); setConfirming(true); }}>
-      <PhoneOff size={13} /> Colgar
+      <PhoneOff size={13} /> {action}
     </Button>
 
     {confirming && <div className="modal-backdrop" role="presentation" onClick={() => !pending && close()}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby={`hangup-${conversationId}`} onClick={event => event.stopPropagation()}>
-        <div className="modal-heading"><h2 id={`hangup-${conversationId}`}>¿Colgar la llamada con {customerName}?</h2><button className="icon-link" aria-label="Cerrar" onClick={close} disabled={pending}><X size={16} /></button></div>
-        <p>La conversación se cierra con el resultado que tenga hasta ahora. Si ya se registró una promesa, se conserva y se envía su confirmación.</p>
+        <div className="modal-heading"><h2 id={`hangup-${conversationId}`}>¿{action} la {isCall ? "llamada" : "conversación"} con {customerName}?</h2><button className="icon-link" aria-label="Cerrar" onClick={close} disabled={pending}><X size={16} /></button></div>
+        <p>Se cierra con el resultado que tenga hasta ahora. Si ya se registró una promesa, se conserva y se envía su confirmación.</p>
         <ul className="modal-rules">
-          <li>Simulada: el agente deja de responder de inmediato.</li>
-          <li>Real: el agente se despide y corta en su siguiente turno.</li>
-          <li>Si la conversación quedó atascada, esto la cierra.</li>
+          <li>El agente deja de responder en esta conversación.</li>
+          {isCall && <li>En una llamada real, se despide y corta en su siguiente turno.</li>}
+          <li>Sirve para cerrar conversaciones que quedaron abiertas.</li>
         </ul>
-        <div className="modal-actions"><Button ref={cancel} variant="outline" onClick={close} disabled={pending}>Seguir en la llamada</Button><Button className="button-danger-solid" onClick={hangup} disabled={pending}><PhoneOff size={14} /> {pending ? "Colgando…" : "Colgar"}</Button></div>
+        <div className="modal-actions"><Button ref={cancel} variant="outline" onClick={close} disabled={pending}>Seguir {isCall ? "en la llamada" : "en la conversación"}</Button><Button className="button-danger-solid" onClick={hangup} disabled={pending}><PhoneOff size={14} /> {pending ? "Cerrando…" : action}</Button></div>
       </div>
     </div>}
 
