@@ -2,22 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bot, CircleCheck, CircleX, Handshake, Scissors, Send, TriangleAlert, UserRound } from "lucide-react";
+import { ArrowLeft, Bot, CircleCheck, CircleDashed, CircleX, Cog, Handshake, Scissors, Send, TriangleAlert, UserRound } from "lucide-react";
+import { CommitmentCard, NoCommitmentCard } from "@/components/commitments/commitment-card";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import { Elapsed } from "@/components/live/elapsed";
 import { createClient } from "@/lib/supabase/client";
-import { bandToGrade, channelLabels, dateTimeLabel, humanize, intentLabels, labelOf, money, outcomeLabels, sentimentLabels } from "@/lib/prevention";
-import type { ConversationEvent, ConversationRow, CustomerOverview, Message, PlaybookStage, TurnEvaluation } from "@/lib/types";
+import {
+  durationLabel, eventDetail, groupHighlightedEvents, highlightedEvents, parseToolMessage, resultCategory, resultCategoryLabels, secondsLabel, stageChanges,
+} from "@/lib/conversation";
+import { bandToGrade, channelLabels, dateTimeLabel, humanize, intentLabels, money, outcomeLabels, sentimentLabels } from "@/lib/prevention";
+import type { Commitment, ConversationEvent, ConversationRow, CustomerOverview, Message, ModelCost, PaymentLink, PlaybookStage, TurnEvaluation } from "@/lib/types";
 
-const eventMeta: Record<string, { label: string; tone: "ok" | "warn" | "danger" | "info" }> = {
-  commitment_registered: { label: "Compromiso registrado", tone: "ok" },
-  offer_validated: { label: "Oferta dentro de política", tone: "ok" },
-  offer_rejected: { label: "Oferta rechazada por política", tone: "danger" },
-  escalation_created: { label: "Escalada a una persona", tone: "danger" },
-  handoff_created: { label: "Enviado por WhatsApp", tone: "info" },
-  interruption_real: { label: "Interrupción del cliente", tone: "warn" },
-  opt_out_registered: { label: "El cliente pidió no ser contactado", tone: "danger" },
-};
+const VISIBLE_EVENTS = 8;
+const LATENCY_TARGET_MS = 2000;
 
 function upsert<T extends { id: string }>(list: T[], item: T, sortKey: (value: T) => number | string) {
   const next = list.filter(existing => existing.id !== item.id);
@@ -25,35 +22,60 @@ function upsert<T extends { id: string }>(list: T[], item: T, sortKey: (value: T
   return next.sort((a, b) => (sortKey(a) > sortKey(b) ? 1 : -1));
 }
 
-function payloadText(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-  const record = payload as Record<string, unknown>;
-  for (const key of ["message", "error", "reason", "receipt_code", "detail"]) if (typeof record[key] === "string") return record[key] as string;
-  return null;
+function percentile(values: number[], p: number) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)];
 }
 
-export function LiveConversation({ conversation: initialConversation, customer, initialMessages, initialEvaluations, initialEvents, stages }: {
+function ToolChipRow({ message }: { message: Message }) {
+  const chip = parseToolMessage(message);
+  return <details className={`tool-chip ${chip.ok === false ? "tool-chip-bad" : chip.ok ? "tool-chip-ok" : ""}`}>
+    <summary>
+      <Cog size={12} />
+      <span>{chip.label}</span>
+      {chip.ok === true && <CircleCheck size={12} />}
+      {chip.ok === false && <CircleX size={12} />}
+      {chip.detail && <small>{chip.detail}</small>}
+    </summary>
+    <pre>{chip.raw}</pre>
+  </details>;
+}
+
+export function LiveConversation({ conversation: initialConversation, customer, initialMessages, initialEvaluations, initialEvents, initialCommitments, initialPaymentLinks, costs, offerNames, stages }: {
   conversation: ConversationRow;
   customer: CustomerOverview | null;
   initialMessages: Message[];
   initialEvaluations: TurnEvaluation[];
   initialEvents: ConversationEvent[];
+  initialCommitments: Commitment[];
+  initialPaymentLinks: PaymentLink[];
+  costs: ModelCost[];
+  offerNames: Record<string, string>;
   stages: PlaybookStage[];
 }) {
   const [conversation, setConversation] = useState(initialConversation);
   const [messages, setMessages] = useState(initialMessages);
   const [evaluations, setEvaluations] = useState(initialEvaluations);
   const [events, setEvents] = useState(initialEvents);
+  const [commitments, setCommitments] = useState(initialCommitments);
+  const [paymentLinks, setPaymentLinks] = useState(initialPaymentLinks);
   const [connected, setConnected] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const transcriptEnd = useRef<HTMLDivElement>(null);
   const id = conversation.id;
 
   useEffect(() => {
     const supabase = createClient();
+    const filter = `conversation_id=eq.${id}`;
     const channel = supabase.channel(`conv-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` }, payload => setMessages(list => upsert(list, payload.new as Message, value => value.seq)))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "turn_evaluations", filter: `conversation_id=eq.${id}` }, payload => setEvaluations(list => upsert(list, payload.new as TurnEvaluation, value => value.seq)))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_events", filter: `conversation_id=eq.${id}` }, payload => setEvents(list => upsert(list, payload.new as ConversationEvent, value => value.created_at)))
+      // UPDATE: el agente alarga el mismo mensaje del cliente cuando la transcripción crece.
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter }, payload => setMessages(list => upsert(list, payload.new as Message, value => value.seq)))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter }, payload => setMessages(list => upsert(list, payload.new as Message, value => value.seq)))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "turn_evaluations", filter }, payload => setEvaluations(list => upsert(list, payload.new as TurnEvaluation, value => value.seq)))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_events", filter }, payload => setEvents(list => upsert(list, payload.new as ConversationEvent, value => value.created_at)))
+      .on("postgres_changes", { event: "*", schema: "public", table: "commitments", filter }, payload => { if (payload.new && "id" in payload.new) setCommitments(list => upsert(list, payload.new as Commitment, value => value.created_at)); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "payment_links", filter }, payload => { if (payload.new && "id" in payload.new) setPaymentLinks(list => upsert(list, payload.new as PaymentLink, value => value.created_at)); })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `id=eq.${id}` }, payload => setConversation(current => ({ ...current, ...(payload.new as Partial<ConversationRow>) })))
       .subscribe(state => setConnected(state === "SUBSCRIBED"));
     return () => { supabase.removeChannel(channel); };
@@ -64,11 +86,37 @@ export function LiveConversation({ conversation: initialConversation, customer, 
   const latest = evaluations.at(-1) ?? null;
   const currentStageKey = latest?.to_stage ?? conversation.current_stage;
   const currentPosition = stages.find(stage => stage.stage_key === currentStageKey)?.position ?? -1;
-  const policyEvent = [...events].reverse().find(event => event.event_type === "offer_validated" || event.event_type === "offer_rejected");
-  const lastAgentLatency = [...messages].reverse().find(message => message.role !== "customer" && message.latency_ms != null)?.latency_ms ?? null;
-  const highlighted = useMemo(() => events.filter(event => eventMeta[event.event_type]), [events]);
+  const stageName = (key: string | null) => stages.find(stage => stage.stage_key === key)?.name ?? humanize(key);
   const ended = Boolean(conversation.ended_at);
   const grade = customer?.risk_band ? bandToGrade[customer.risk_band] : null;
+
+  const commitment = commitments.find(row => row.id === conversation.commitment_id) ?? commitments.at(-1) ?? null;
+  const commitmentLinks = paymentLinks.filter(link => !commitment || !link.commitment_id || link.commitment_id === commitment.id);
+  const category = ended ? resultCategory(conversation.outcome, Boolean(commitment)) : null;
+
+  const lastOffer = [...events].reverse().find(event => event.event_type === "offer_validated" || event.event_type === "offer_rejected");
+  const eventGroups = useMemo(() => groupHighlightedEvents(events), [events]);
+  const visibleGroups = showAllEvents ? eventGroups : eventGroups.slice(-VISIBLE_EVENTS);
+  const stageHistory = useMemo(() => stageChanges(events), [events]);
+
+  const agentLatencies = messages.filter(message => message.role === "agent" && message.latency_ms != null).map(message => message.latency_ms!);
+  const endedPayload = events.find(event => event.event_type === "conversation_ended")?.payload as { avg_latency_ms?: number | null; p95_latency_ms?: number | null } | undefined;
+  const avgLatency = conversation.avg_latency_ms ?? endedPayload?.avg_latency_ms ?? (agentLatencies.length ? Math.round(agentLatencies.reduce((sum, value) => sum + value, 0) / agentLatencies.length) : null);
+  const p95Latency = conversation.p95_latency_ms ?? endedPayload?.p95_latency_ms ?? percentile(agentLatencies, 95);
+  const interruptions = conversation.interruption_count ?? events.filter(event => event.event_type === "interruption_real").length;
+  const durationMs = conversation.duration_ms ?? (conversation.ended_at ? new Date(conversation.ended_at).getTime() - new Date(conversation.started_at).getTime() : null);
+  const costByRole = costs.reduce<Record<string, number>>((totals, row) => {
+    const key = humanize(row.role ?? row.provider ?? "otro");
+    totals[key] = (totals[key] ?? 0) + (row.cost_usd ?? 0);
+    return totals;
+  }, {});
+
+  const funnel = [
+    { label: "Oferta validada", done: events.some(event => event.event_type === "offer_validated") },
+    { label: "Condiciones dichas", done: (conversation.terms_presented?.length ?? 0) > 0 },
+    { label: "Cliente confirmó", done: Boolean(commitment?.customer_confirmed) || evaluations.some(evaluation => evaluation.commitment_signal === "explicit") },
+    { label: commitment ? `Registrada (${commitment.receipt_code})` : "Registrada", done: Boolean(commitment) },
+  ];
 
   return <div className="page-enter">
     <Link href={ended ? (customer ? `/clientes/${customer.customer_id}` : "/") : "/en-vivo"} className="back-link"><ArrowLeft size={15} /> {ended ? "Volver a la ficha" : "Volver a en vivo"}</Link>
@@ -82,18 +130,35 @@ export function LiveConversation({ conversation: initialConversation, customer, 
       <span className={`live-status ${connected ? "live-status-live" : "live-status-connecting"}`}><i />{connected ? "En tiempo real" : "Conectando…"}</span>
     </div>
 
-    {ended && <section className="closing-card">
-      <div><span className="eyebrow">RESULTADO</span><strong>{humanize(conversation.outcome, outcomeLabels)}</strong></div>
+    {category && <section className={`result-banner result-${category}`} aria-label="Resultado final">
+      <span className="eyebrow">RESULTADO FINAL</span>
+      <strong>{resultCategoryLabels[category]}</strong>
+      <span className="result-outcome">{humanize(conversation.outcome, outcomeLabels)}{conversation.outcome_reason ? ` · ${conversation.outcome_reason}` : ""}</span>
+    </section>}
+
+    {commitment
+      ? <CommitmentCard commitment={commitment} links={commitmentLinks} offerName={offerNames[commitment.offer_code] ?? null} />
+      : ended && <NoCommitmentCard outcome={conversation.outcome} reason={conversation.outcome_reason} summary={conversation.summary} />}
+
+    {ended && <section className="closing-card closing-metrics" aria-label="Métricas de la conversación">
+      <div><span className="eyebrow">LATENCIA PROM.</span><strong>{secondsLabel(avgLatency)}</strong></div>
+      <div><span className="eyebrow">P95 POR TURNO</span><strong className={p95Latency == null ? "" : p95Latency < LATENCY_TARGET_MS ? "metric-ok" : "metric-bad"}>{secondsLabel(p95Latency)}</strong><small>Meta &lt; 2 s</small></div>
+      <div><span className="eyebrow">TURNOS</span><strong>{conversation.turn_count}</strong></div>
+      <div><span className="eyebrow">INTERRUPCIONES</span><strong>{interruptions}</strong></div>
+      <div><span className="eyebrow">DURACIÓN</span><strong>{durationLabel(durationMs)}</strong></div>
       <div><span className="eyebrow">RIESGO</span><strong>{conversation.risk_before ?? "—"} → {conversation.risk_after ?? "—"}</strong></div>
-      <div><span className="eyebrow">COSTO</span><strong>{conversation.cost_usd != null ? money(conversation.cost_usd) : "—"}</strong></div>
+      <div><span className="eyebrow">COSTO</span><strong>{conversation.cost_usd != null ? money(conversation.cost_usd) : "—"}</strong>{Object.keys(costByRole).length > 1 && <small>{Object.entries(costByRole).map(([role, cost]) => `${role} $${cost.toFixed(4)}`).join(" · ")}</small>}</div>
       <div><span className="eyebrow">CIERRE</span><strong>{dateTimeLabel(conversation.ended_at)}</strong></div>
     </section>}
+
+    {ended && commitment && conversation.summary && <p className="conversation-summary"><b>Resumen:</b> {conversation.summary}</p>}
 
     <div className="live-layout">
       <section className="panel transcript-panel" aria-labelledby="transcript-title">
         <div className="panel-heading"><div><span className="eyebrow">TRANSCRIPCIÓN</span><h2 id="transcript-title">Conversación</h2></div></div>
         {messages.length === 0 ? <p className="muted-note">Esperando el primer mensaje…</p> :
           <div className="transcript">{messages.map(message => {
+            if (message.role === "tool") return <ToolChipRow key={message.id} message={message} />;
             const isCustomer = message.role === "customer";
             return <div key={message.id} className={`bubble ${isCustomer ? "bubble-customer" : message.role === "system" ? "bubble-system" : "bubble-agent"}`}>
               <span className="bubble-author">{isCustomer ? <UserRound size={13} /> : <Bot size={13} />}{isCustomer ? "Cliente" : message.role === "system" ? "Sistema" : "Agente"}</span>
@@ -111,30 +176,42 @@ export function LiveConversation({ conversation: initialConversation, customer, 
           return <li key={stage.id} className={`stage stage-${state}`} title={stage.objective ?? stage.name}><i /><span>{stage.name}</span></li>;
         })}</ol>}
 
+        <h3 className="subheading">Cierre del compromiso</h3>
+        <ol className="closing-funnel" aria-label="Embudo de cierre">{funnel.map(step => <li key={step.label} className={step.done ? "funnel-done" : ""}>
+          {step.done ? <CircleCheck size={15} /> : <CircleDashed size={15} />}<span>{step.label}</span>
+        </li>)}</ol>
+        {lastOffer?.event_type === "offer_rejected" && !commitment && <p className="funnel-note"><CircleX size={13} /> Última oferta rechazada: {eventDetail(lastOffer) ?? "fuera de política"}</p>}
+
         <dl className="brain-list">
-          <div><dt>Etapa</dt><dd>{stages.find(stage => stage.stage_key === currentStageKey)?.name ?? humanize(currentStageKey)}</dd></div>
+          <div><dt>Etapa</dt><dd>{stageName(currentStageKey)}</dd></div>
           <div><dt>Intención</dt><dd>{humanize(latest?.intent, intentLabels)}{latest?.confidence != null && <small> · confianza {Math.round(latest.confidence * 100)}%</small>}</dd></div>
           <div><dt>Sentimiento</dt><dd>{humanize(latest?.sentiment, sentimentLabels)}{latest?.sentiment_score != null && <small> ({latest.sentiment_score.toFixed(2)})</small>}</dd></div>
           <div><dt>Ritmo</dt><dd>{humanize(latest?.pace)}</dd></div>
-          <div><dt>Regla</dt><dd>{latest?.rule_label ?? latest?.rule_id ?? "—"}</dd></div>
           <div><dt>Siguiente</dt><dd>{humanize(latest?.decision)}</dd></div>
-          <div><dt>Política</dt><dd>{policyEvent
-            ? policyEvent.event_type === "offer_validated"
+          <div><dt>Política</dt><dd>{lastOffer
+            ? lastOffer.event_type === "offer_validated"
               ? <span className="policy-ok"><CircleCheck size={14} /> Dentro de límites</span>
-              : <span className="policy-bad"><CircleX size={14} /> {payloadText(policyEvent.payload) ?? "Fuera de política"}</span>
+              : <span className="policy-bad"><CircleX size={14} /> Fuera de política</span>
             : "Sin ofertas evaluadas"}</dd></div>
-          <div><dt>Latencia</dt><dd>{lastAgentLatency != null ? `${(lastAgentLatency / 1000).toFixed(2)} s` : "—"}</dd></div>
-          <div><dt>Costo</dt><dd>{conversation.cost_usd != null ? money(conversation.cost_usd) : "—"}</dd></div>
+          {!ended && <div><dt>Latencia</dt><dd>{secondsLabel(agentLatencies.at(-1))}{p95Latency != null && <small> · p95 {secondsLabel(p95Latency)}</small>}</dd></div>}
         </dl>
 
+        <h3 className="subheading">Recorrido de etapas</h3>
+        {stageHistory.length === 0 ? <p className="muted-note">Sin cambios de etapa todavía.</p> :
+          <ol className="stage-history">{stageHistory.map(change => <li key={change.id}>
+            <div><strong>{stageName(change.from)} → {stageName(change.to)}</strong><time>{dateTimeLabel(change.at)}</time></div>
+            {change.rule && <small>Regla: {change.rule}</small>}
+          </li>)}</ol>}
+
         <h3 className="subheading">Eventos destacados</h3>
-        {highlighted.length === 0 ? <p className="muted-note">Sin eventos por ahora.</p> :
-          <ul className="event-list">{highlighted.map(event => {
-            const meta = eventMeta[event.event_type];
-            const Icon = event.event_type === "commitment_registered" ? Handshake : event.event_type === "handoff_created" ? Send : event.event_type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
-            const detail = payloadText(event.payload) ?? (event.payload && typeof event.payload === "object" ? labelOf(event.payload) : null);
-            return <li key={event.id} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}</strong>{detail && detail !== "—" && <small>{detail}</small>}</div><time>{dateTimeLabel(event.created_at)}</time></li>;
-          })}</ul>}
+        {eventGroups.length === 0 ? <p className="muted-note">Sin eventos por ahora.</p> : <>
+          <ul className="event-list">{visibleGroups.map(group => {
+            const meta = highlightedEvents[group.type];
+            const Icon = group.type === "commitment_registered" ? Handshake : group.type === "handoff_created" || group.type === "payment_link_created" ? Send : group.type === "interruption_real" ? Scissors : meta.tone === "ok" ? CircleCheck : TriangleAlert;
+            return <li key={group.key} className={`event event-${meta.tone}`}><Icon size={14} /><div><strong>{meta.label}{group.count > 1 && <span className="event-count"> ×{group.count}</span>}</strong>{group.detail && <small>{group.detail}</small>}</div><time>{dateTimeLabel(group.last.created_at)}</time></li>;
+          })}</ul>
+          {eventGroups.length > VISIBLE_EVENTS && <button type="button" className="text-link events-toggle" onClick={() => setShowAllEvents(value => !value)}>{showAllEvents ? "Ver menos" : `Ver todos (${eventGroups.length})`}</button>}
+        </>}
       </section>
     </div>
   </div>;

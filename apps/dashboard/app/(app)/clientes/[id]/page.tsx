@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, Ban, MessageCircle, Phone, ShieldCheck, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CommitmentStatus } from "@/components/commitments/commitment-card";
+import { CallButton } from "@/components/prevention/call-button";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import {
   actionLabels, asList, bandToGrade, channelLabels, dateLabel, dateTimeLabel, dueLabel, humanize, initials, labelOf, money, outcomeLabels,
 } from "@/lib/prevention";
-import { getConversationsForCustomer, getCustomerById, getLatestIntervention, getSignalDefinitions } from "@/lib/supabase/queries";
+import { commitmentTypeLabels } from "@/lib/conversation";
+import { getConversationsForCustomer, getCustomerById, getCustomerCommitments, getLatestIntervention, getOfferNames, getSignalDefinitions } from "@/lib/supabase/queries";
 
 function ChannelIcon({ channel, size = 16 }: { channel: string | null; size?: number }) {
   if (channel === "whatsapp") return <MessageCircle size={size} />;
@@ -18,7 +20,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const { id } = await params;
   const customer = await getCustomerById(id);
   if (!customer) notFound();
-  const [intervention, conversations, signalDefinitions] = await Promise.all([getLatestIntervention(id), getConversationsForCustomer(id), getSignalDefinitions()]);
+  const [intervention, conversations, signalDefinitions, commitments, offerNames] = await Promise.all([getLatestIntervention(id), getConversationsForCustomer(id), getSignalDefinitions(), getCustomerCommitments(id), getOfferNames()]);
   const signalLabels = new Map(signalDefinitions.map(signal => [signal.code, signal]));
 
   const grade = customer.risk_band ? bandToGrade[customer.risk_band] : null;
@@ -49,7 +51,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
       </div>
       <div className="customer-heading-actions">
         {grade && <GradeBadge grade={grade} large />}
-        <span title="Llamada desde la web pendiente de conectar con el agente"><Button disabled><Phone size={15} /> Empezar llamada</Button></span>
+        <CallButton customerId={customer.customer_id} disabledReason={customer.contact_enabled && !customer.is_control_group && !customer.opted_out ? null : "Sin contacto habilitado"} />
       </div>
     </div>
 
@@ -98,6 +100,23 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         {!intervention && <p className="muted-note">Aún no hay una intervención registrada. Ejecuta una corrida desde el centro de prevención.</p>}
       </section>
     </div>
+
+    <section className="panel table-panel" aria-labelledby="commitments-title">
+      <div className="panel-heading"><div><span className="eyebrow">RESULTADO DE LA GESTIÓN</span><h2 id="commitments-title">Promesas de pago<span className="count-badge">{commitments.length}</span></h2></div><Link href="/promesas" className="text-link">Ver todas <ArrowUpRight size={13} /></Link></div>
+      {commitments.length === 0 ? <div className="empty-state"><h3>Sin promesas de pago</h3><p>Cuando el cliente acuerde una fecha o un monto con el agente, el compromiso aparecerá aquí.</p></div> :
+        <div className="table-scroll"><table>
+          <thead><tr><th>Código</th><th>Oferta</th><th>Fecha comprometida</th><th>Monto</th><th>Estado</th><th>Registrada</th><th><span className="sr-only">Conversación</span></th></tr></thead>
+          <tbody>{commitments.map(commitment => <tr key={commitment.id}>
+            <td><strong className="amount">{commitment.receipt_code}</strong></td>
+            <td><span className="cell-title">{offerNames[commitment.offer_code] ?? commitmentTypeLabels[commitment.commitment_type] ?? commitment.offer_code}</span><small className="cell-secondary">{commitment.offer_code}</small></td>
+            <td>{dateLabel(commitment.committed_date)}{commitment.original_due_date && commitment.original_due_date !== commitment.committed_date && <small className="cell-secondary">Vencía {dateLabel(commitment.original_due_date)}</small>}</td>
+            <td className="amount">{money(commitment.amount)}</td>
+            <td><CommitmentStatus status={commitment.status} /></td>
+            <td>{dateTimeLabel(commitment.created_at)}</td>
+            <td>{commitment.conversation_id && <Link className="row-arrow" href={`/conversaciones/${commitment.conversation_id}`} aria-label="Ver conversación de origen"><ArrowUpRight size={15} /></Link>}</td>
+          </tr>)}</tbody>
+        </table></div>}
+    </section>
 
     <section className="panel table-panel">
       <div className="panel-heading"><div><span className="eyebrow">HISTORIAL</span><h2>Conversaciones<span className="count-badge">{conversations.length}</span></h2></div></div>

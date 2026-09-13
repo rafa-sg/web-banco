@@ -148,6 +148,8 @@ export type Message = {
   latency_ms: number | null;
   interrupted: boolean;
   heard_text: string | null;
+  is_backchannel: boolean;
+  meta: unknown;
   created_at: string;
 };
 
@@ -167,6 +169,7 @@ export type TurnEvaluation = {
   rule_id: string | null;
   rule_label: string | null;
   pace: string | null;
+  commitment_signal: string | null;
   created_at: string;
 };
 
@@ -194,7 +197,40 @@ export type ConversationRow = {
   cost_usd: number | null;
   started_at: string;
   ended_at: string | null;
+  outcome_reason: string | null;
+  summary: string | null;
+  commitment_id: string | null;
+  terms_presented: string[] | null;
+  duration_ms: number | null;
+  avg_latency_ms: number | null;
+  p95_latency_ms: number | null;
+  interruption_count: number;
 };
+
+export type Commitment = {
+  id: string;
+  conversation_id: string | null;
+  customer_id: string;
+  offer_code: string;
+  commitment_type: string;
+  amount: number | null;
+  committed_date: string | null;
+  original_due_date: string | null;
+  terms_text: string | null;
+  status: string;
+  requires_approval: boolean;
+  customer_confirmed: boolean;
+  policy_validated: boolean;
+  receipt_code: string;
+  created_at: string;
+  resolved_at: string | null;
+};
+
+export type CommitmentListItem = Commitment & { customer_name: string; customer_code: string | null; offer_name: string | null };
+
+export type PaymentLink = { id: string; conversation_id: string | null; commitment_id: string | null; token: string; url: string; amount: number; status: string; expires_at: string; paid_at: string | null; created_at: string };
+
+export type ModelCost = { role: string | null; provider: string | null; cost_usd: number | null };
 
 export type PlaybookStage = { id: string; stage_key: string; position: number; name: string; objective: string | null; is_terminal: boolean };
 

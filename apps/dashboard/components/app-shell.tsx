@@ -4,13 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronRight, CircleHelp, LineChart, Menu, Radar, Settings2, X, Activity, LogOut } from "lucide-react";
+import { ChevronRight, CircleHelp, Handshake, LineChart, Menu, Radar, Settings2, X, Activity, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/login/actions";
 
 export const navigation = [
   { href: "/", label: "Centro de prevención", icon: Radar, group: "OPERACIÓN" },
   { href: "/en-vivo", label: "En vivo", icon: Activity },
+  { href: "/promesas", label: "Promesas de pago", icon: Handshake },
   { href: "/impacto", label: "Impacto", icon: LineChart, group: "GOBERNANZA" },
   { href: "/configuracion", label: "Configuración", icon: Settings2 },
 ];

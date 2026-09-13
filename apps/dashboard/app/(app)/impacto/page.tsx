@@ -1,8 +1,9 @@
-import { BadgeDollarSign, CircleGauge, Handshake, Info, MessageSquareText, PhoneCall, ShieldCheck, TrendingDown, Users } from "lucide-react";
+import { BadgeDollarSign, CalendarCheck, CircleCheck, CircleGauge, Handshake, Info, MessageSquareText, PhoneCall, ShieldCheck, TrendingDown, Users } from "lucide-react";
 import { CohortChart, DailyChart } from "@/components/impact/impact-charts";
 import { GradeBadge } from "@/components/prevention/grade-badge";
 import { bandToGrade, channelLabels, cohortLabels, gradeColors, humanize, money, percentage, sentimentLabels } from "@/lib/prevention";
-import { getImpactData } from "@/lib/supabase/queries";
+import { resultCategory, todayInElSalvador } from "@/lib/conversation";
+import { getImpactData, getPromiseKpiData } from "@/lib/supabase/queries";
 import type { Grade } from "@/lib/types";
 
 const GRADES: Grade[] = ["A", "B", "C", "D", "E"];
@@ -14,8 +15,14 @@ function heat(rate: number | null) {
 }
 
 export default async function ImpactPage() {
-  const data = await getImpactData();
+  const [data, promises] = await Promise.all([getImpactData(), getPromiseKpiData()]);
   const { kpis } = data;
+
+  const today = todayInElSalvador();
+  const promisesToday = promises.commitments.filter(row => todayInElSalvador(new Date(row.created_at)) === today);
+  const amountCommitted = promises.commitments.filter(row => row.status !== "cancelled" && row.status !== "broken").reduce((sum, row) => sum + (row.amount ?? 0), 0);
+  const clearCalls = promises.voiceCalls.filter(row => { const category = resultCategory(row.outcome, Boolean(row.commitment_id)); return category != null && category !== "no_contact"; }).length;
+  const clearRate = promises.voiceCalls.length ? (clearCalls / promises.voiceCalls.length) * 100 : null;
 
   const control = data.cohorts.find(row => row.cohort === "grupo_control");
   const intervened = data.cohorts.find(row => row.cohort === "intervenido");
@@ -69,6 +76,10 @@ export default async function ImpactPage() {
       <div className="stat-card accent-cyan"><div className="stat-label">P95 de respuesta en voz<CircleGauge size={18} strokeWidth={1.6} /></div><strong className="stat-value">{kpis?.p95_voice_latency_ms != null ? `${(kpis.p95_voice_latency_ms / 1000).toFixed(2)} s` : "—"}</strong><div className="stat-detail">Promedio {kpis?.avg_latency_ms != null ? `${(kpis.avg_latency_ms / 1000).toFixed(2)} s` : "—"}</div><div className="stat-annotation"><span className="tiny-dot" />OBJETIVO &lt; 2 S</div></div>
       <div className="stat-card accent-pink"><div className="stat-label">Interrupciones en voz<PhoneCall size={18} strokeWidth={1.6} /></div><strong className="stat-value">{percentage(kpis?.voice_interruption_rate_pct)}</strong><div className="stat-detail">{kpis?.failed_interactions ?? 0} interacciones fallidas</div><div className="stat-annotation"><span className="tiny-dot" />TURNOS DEL AGENTE INTERRUMPIDOS</div></div>
       <div className="stat-card accent-green"><div className="stat-label">Costo por conversación<MessageSquareText size={18} strokeWidth={1.6} /></div><strong className="stat-value">{kpis?.avg_cost_per_conversation_usd != null ? `$${kpis.avg_cost_per_conversation_usd.toFixed(4)}` : "—"}</strong><div className="stat-detail">Cierre positivo o neutral {percentage(kpis?.positive_or_neutral_end_pct)}</div><div className="stat-annotation"><span className="tiny-dot" />MODELOS + VOZ</div></div>
+      <div className="stat-card accent-green"><div className="stat-label">Promesas registradas hoy<CalendarCheck size={18} strokeWidth={1.6} /></div><strong className="stat-value">{promisesToday.length}</strong><div className="stat-detail">{money(promisesToday.reduce((sum, row) => sum + (row.amount ?? 0), 0))} comprometidos hoy</div><div className="stat-annotation"><span className="tiny-dot" />{promises.commitments.length} PROMESAS EN TOTAL</div></div>
+      <div className="stat-card accent-purple"><div className="stat-label">Monto comprometido<Handshake size={18} strokeWidth={1.6} /></div><strong className="stat-value">{money(amountCommitted)}</strong><div className="stat-detail">Excluye promesas canceladas o incumplidas</div><div className="stat-annotation"><span className="tiny-dot" />DATOS FICTICIOS</div></div>
+      <div className="stat-card accent-cyan"><div className="stat-label">Cumplimiento de promesas<CircleCheck size={18} strokeWidth={1.6} /></div><strong className="stat-value">{percentage(kpis?.commitment_kept_rate_pct)}</strong><div className="stat-detail">Cumplidas sobre promesas resueltas</div><div className="stat-annotation"><span className="tiny-dot" />EFECTIVIDAD DE LA GESTIÓN</div></div>
+      <div className="stat-card accent-orange"><div className="stat-label">Llamadas con resultado claro<PhoneCall size={18} strokeWidth={1.6} /></div><strong className="stat-value">{percentage(clearRate)}</strong><div className="stat-detail">{clearCalls} de {promises.voiceCalls.length} llamadas terminadas</div><div className="stat-annotation"><span className="tiny-dot" />FECHA ACORDADA · SEGUIMIENTO · SIN ACUERDO</div></div>
     </section>
 
     <div className="impact-grid">

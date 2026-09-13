@@ -57,7 +57,7 @@ button svg, a svg { flex-shrink: 0; }
 .nav-item:hover { background: #383835; color: #fff; }
 .nav-item.active { color: #292923; background: var(--primary); font-weight: 600; }
 .active-dot { width: 5px; height: 5px; background: #292923; border-radius: 50%; margin-left: auto; }
-.sidebar nav > div:nth-child(3) { margin-top: 32px; }
+.sidebar nav > div:not(:first-child):has(> .nav-group) { margin-top: 32px; }
 .profile .icon-link { margin-left: auto; background: none; color: #b6b6af; border-color: #41413b; cursor: pointer; }
 .profile .icon-link:hover { background: #3c3c37; color: #fff; }
 .sidebar-bottom { margin-top: auto; padding-top: 40px; }
@@ -695,6 +695,67 @@ div.stat-card.stat-highlight:hover { border-color: var(--primary); }
   .toast { left: 16px; right: 16px; bottom: 16px; }
 }
 
+
+/* ── Promesas de pago ─────────────────────────────────────────── */
+.result-banner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding: 18px 22px; border-radius: 12px; margin-bottom: 16px; border: 1px solid; }
+.result-banner .eyebrow { flex-basis: 100%; margin: 0; }
+.result-banner strong { font-size: 26px; font-weight: 600; letter-spacing: -.6px; }
+.result-outcome { font-size: 13px; opacity: .85; }
+.result-agreed { background: #e3f8f4; border-color: #b9ebdf; color: #065c4b; }
+.result-follow_up { background: #fdf6cf; border-color: #efe3a2; color: #6b5c00; }
+.result-no_agreement { background: #fbe8f2; border-color: #f2c4dc; color: #8a2c60; }
+.result-no_contact { background: #f3f4ee; border-color: var(--border); color: #4c4f43; }
+.result-banner .eyebrow { color: inherit; opacity: .8; }
+.promise-card { background: #fff; border: 2px solid var(--brand-green); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+.promise-card-empty { border: 1px solid var(--border); background: #f7f8f4; }
+.promise-head { display: flex; align-items: center; gap: 14px; }
+.promise-head .eyebrow { margin-bottom: 2px; }
+.promise-head .status-pill { margin-left: auto; font-size: 12px; padding: 6px 12px; }
+.promise-icon { width: 46px; height: 46px; border-radius: 11px; display: grid; place-items: center; background: #e3f8f4; color: #067a63; flex-shrink: 0; }
+.promise-card-empty .promise-icon { background: #ecede7; color: #6b6e66; }
+.promise-receipt { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.promise-card-empty .promise-receipt { font-size: 20px; color: #4c4f43; }
+.promise-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.promise-grid > div { background: #f7f8f4; border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.promise-grid span { display: block; font-size: 11px; color: #6b6e66; }
+.promise-grid strong { display: block; margin-top: 4px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.promise-grid small { display: block; margin-top: 2px; font-size: 11px; color: #6b6e66; }
+.promise-terms { margin-top: 14px; font-size: 14px; line-height: 1.6; color: #3d3f38; }
+.promise-summary { margin-top: 8px; font-size: 13px; line-height: 1.6; color: #6b6e66; }
+.promise-checks { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; }
+.promise-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #9a9d92; }
+.promise-check-ok { color: #067a63; font-weight: 600; }
+.promise-links { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid #eef0e8; display: flex; flex-direction: column; gap: 8px; }
+.promise-links li { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.commitment-pending, .commitment-approved, .link-active { background: #e7f6fb; color: #1f7f9c; }
+.commitment-pending_approval { background: #fdf6cf; color: #7a6800; }
+.commitment-kept, .link-paid { background: #e3f8f4; color: #067a63; }
+.commitment-broken { background: #fbe8f2; color: #a13570; }
+.commitment-cancelled, .link-expired, .link-cancelled { background: #f3f4ee; color: #6b6e66; }
+.closing-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.closing-metrics small { display: block; font-size: 11px; color: #6b6e66; margin-top: 2px; }
+.metric-ok { color: #067a63; }
+.metric-bad { color: #a13570; }
+.conversation-summary { font-size: 13px; line-height: 1.6; color: #3d3f38; margin: -6px 0 20px; }
+.tool-chip { align-self: center; max-width: 94%; font-size: 12px; color: #6b6e66; }
+.tool-chip summary { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: #f3f4ee; border: 1px solid #e7e8e4; cursor: pointer; list-style: none; }
+.tool-chip summary::-webkit-details-marker { display: none; }
+.tool-chip small { font-size: 12px; }
+.tool-chip-ok summary { background: #eef9f6; border-color: #cdeee5; color: #065c4b; }
+.tool-chip-bad summary { background: #fdf0f6; border-color: #f2c4dc; color: #8a2c60; }
+.tool-chip pre { margin: 6px 0 0; padding: 10px; border-radius: 8px; background: #f7f8f4; font-size: 11px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+.closing-funnel { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.closing-funnel li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #9a9d92; }
+.closing-funnel li.funnel-done { color: #067a63; font-weight: 600; }
+.funnel-note { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #a13570; margin-bottom: 8px; }
+.stage-history { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid #eef0e8; display: flex; flex-direction: column; gap: 10px; }
+.stage-history li > div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.stage-history strong { font-weight: 600; }
+.stage-history time { font-size: 11px; color: #6b6e66; white-space: nowrap; }
+.stage-history small { display: block; font-size: 12px; color: #6b6e66; margin-top: 2px; }
+.event-count { font-weight: 700; opacity: .75; }
+.events-toggle { border: 0; background: none; padding: 0; margin-top: 10px; cursor: pointer; }
+@media (max-width: 1050px) { .promise-grid, .closing-metrics { grid-template-columns: 1fr 1fr; } }
 
 /* ── Impacto ───────────────────────────────────────────────────── */
 .stats-grid-8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }

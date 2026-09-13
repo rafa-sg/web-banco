@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
-  AgentPolicy, ChannelPerformance, CohortImpact, CollectionRule, ConversationEvent, ConversationRow, ConversationSummary, ConversationTimelineEvent,
-  CustomerOverview, DailyMetric, EvaluationCriterion, FactDefinition, Intervention, Kpis, LiveConversation, Message, ModelPerformance, Offer,
-  OfferPerformance, OpenEscalation, OutcomeDefinition, PendingCommitment, Playbook, PlaybookStage, PlaybookStageFull, RiskBand, RiskDistributionRow,
+  AgentPolicy, ChannelPerformance, Commitment, CommitmentListItem, CohortImpact, CollectionRule, ConversationEvent, ConversationRow, ConversationSummary, ConversationTimelineEvent,
+  CustomerOverview, DailyMetric, EvaluationCriterion, FactDefinition, Intervention, Kpis, LiveConversation, Message, ModelCost, ModelPerformance, Offer,
+  OfferPerformance, OpenEscalation, OutcomeDefinition, PaymentLink, PendingCommitment, Playbook, PlaybookStage, PlaybookStageFull, RiskBand, RiskDistributionRow,
   RuleOffer, RulePerformance, SentimentShift, SignalDefinition, StageFunnel, TurnEvaluation,
 } from "@/lib/types";
 
@@ -64,21 +64,21 @@ export async function getConversationTimeline(conversationId: string): Promise<C
 
 export async function getConversation(conversationId: string): Promise<ConversationRow | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("conversations").select("id, customer_id, playbook_id, channel, status, current_stage, turn_count, outcome, risk_before, risk_after, cost_usd, started_at, ended_at").eq("id", conversationId).maybeSingle();
+  const { data, error } = await supabase.from("conversations").select("id, customer_id, playbook_id, channel, status, current_stage, turn_count, outcome, outcome_reason, summary, commitment_id, terms_presented, risk_before, risk_after, cost_usd, duration_ms, avg_latency_ms, p95_latency_ms, interruption_count, started_at, ended_at").eq("id", conversationId).maybeSingle();
   if (error) return null;
   return data as ConversationRow | null;
 }
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("messages").select("id, conversation_id, seq, role, content, stage_key, latency_ms, interrupted, heard_text, created_at").eq("conversation_id", conversationId).order("seq", { ascending: true });
+  const { data, error } = await supabase.from("messages").select("id, conversation_id, seq, role, content, stage_key, latency_ms, interrupted, heard_text, is_backchannel, meta, created_at").eq("conversation_id", conversationId).order("seq", { ascending: true });
   if (error) return [];
   return (data ?? []) as Message[];
 }
 
 export async function getTurnEvaluations(conversationId: string): Promise<TurnEvaluation[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("turn_evaluations").select("id, conversation_id, message_id, seq, stage_key, intent, sentiment, sentiment_score, confidence, decision, from_stage, to_stage, rule_id, rule_label, pace, created_at").eq("conversation_id", conversationId).order("seq", { ascending: true });
+  const { data, error } = await supabase.from("turn_evaluations").select("id, conversation_id, message_id, seq, stage_key, intent, sentiment, sentiment_score, confidence, decision, from_stage, to_stage, rule_id, rule_label, pace, commitment_signal, created_at").eq("conversation_id", conversationId).order("seq", { ascending: true });
   if (error) return [];
   return (data ?? []) as TurnEvaluation[];
 }
@@ -184,4 +184,45 @@ export async function getEscalations(): Promise<OpenEscalation[]> {
   const rows = await selectAll<Omit<OpenEscalation, "customer_name">>("escalations", "id, conversation_id, customer_id, reason, trigger, priority, status, assigned_to, notes, sla_due_at, created_at, resolved_at", query => query.order("created_at", { ascending: false }).limit(50));
   const names = await customerNames([...new Set(rows.map(row => row.customer_id))]);
   return rows.map(row => ({ ...row, customer_name: names.get(row.customer_id) ?? "Cliente" }));
+}
+
+const COMMITMENT_COLUMNS = "id, conversation_id, customer_id, offer_code, commitment_type, amount, committed_date, original_due_date, terms_text, status, requires_approval, customer_confirmed, policy_validated, receipt_code, created_at, resolved_at";
+
+export async function getConversationCommitments(conversationId: string) {
+  const [commitments, paymentLinks, costs] = await Promise.all([
+    selectAll<Commitment>("commitments", COMMITMENT_COLUMNS, query => query.eq("conversation_id", conversationId).order("created_at", { ascending: true })),
+    selectAll<PaymentLink>("payment_links", "id, conversation_id, commitment_id, token, url, amount, status, expires_at, paid_at, created_at", query => query.eq("conversation_id", conversationId).order("created_at", { ascending: true })),
+    selectAll<ModelCost>("model_usage", "role, provider, cost_usd", query => query.eq("conversation_id", conversationId)),
+  ]);
+  return { commitments, paymentLinks, costs };
+}
+
+export async function getCustomerCommitments(customerId: string) {
+  return selectAll<Commitment>("commitments", COMMITMENT_COLUMNS, query => query.eq("customer_id", customerId).order("created_at", { ascending: false }));
+}
+
+export async function getCommitmentList(): Promise<CommitmentListItem[]> {
+  const [rows, offers] = await Promise.all([
+    selectAll<Commitment>("commitments", COMMITMENT_COLUMNS, query => query.order("created_at", { ascending: false }).limit(1000)),
+    selectAll<{ code: string; name: string }>("offers", "code, name"),
+  ]);
+  const ids = [...new Set(rows.map(row => row.customer_id))];
+  const customers = ids.length ? await selectAll<{ id: string; full_name: string; customer_code: string | null }>("customers", "id, full_name, customer_code", query => query.in("id", ids)) : [];
+  const byId = new Map(customers.map(row => [row.id, row]));
+  const offerNames = new Map(offers.map(offer => [offer.code, offer.name]));
+  return rows.map(row => ({ ...row, customer_name: byId.get(row.customer_id)?.full_name ?? "Cliente", customer_code: byId.get(row.customer_id)?.customer_code ?? null, offer_name: offerNames.get(row.offer_code) ?? null }));
+}
+
+export async function getOfferNames() {
+  const rows = await selectAll<{ code: string; name: string }>("offers", "code, name");
+  return Object.fromEntries(rows.map(row => [row.code, row.name])) as Record<string, string>;
+}
+
+export async function getPromiseKpiData() {
+  const [commitments, voiceCalls] = await Promise.all([
+    selectAll<{ status: string; amount: number | null; created_at: string }>("commitments", "status, amount, created_at"),
+    // Llamadas de voz terminadas: base para "% con resultado claro".
+    selectAll<{ outcome: string | null; commitment_id: string | null }>("conversations", "outcome, commitment_id", query => query.eq("channel", "voice").not("ended_at", "is", null)),
+  ]);
+  return { commitments, voiceCalls };
 }

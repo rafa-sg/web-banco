@@ -15,7 +15,7 @@ export default async function LivePage() {
         <h1>En vivo<span className="heading-dot">.</span></h1>
         <p>Conversaciones en curso con su etapa, intención y última decisión del agente.</p>
       </div>
-      <LiveRefresh tables={["conversations", "messages", "turn_evaluations"]} channelName="live-list" />
+      <LiveRefresh tables={["conversations", "messages", "turn_evaluations", "conversation_events", "intervention_steps", "commitments"]} channelName="live-list" />
     </div>
 
     {live.length === 0

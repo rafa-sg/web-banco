@@ -34,6 +34,8 @@ export function percentage(value: number | null | undefined, decimals = 0) {
 
 export function dateLabel(value: string | null | undefined) {
   if (!value) return "—";
+  // Columnas date (YYYY-MM-DD) se parsean como medianoche UTC: formatearlas en El Salvador las corre un día atrás.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
   return new Intl.DateTimeFormat("es-SV", { day: "2-digit", month: "short", timeZone: "America/El_Salvador" }).format(new Date(value));
 }
 
@@ -84,6 +86,7 @@ export const outcomeLabels: Record<string, string> = {
   ALREADY_PAID: "Indica que ya pagó", FOLLOW_UP_REQUIRED: "Requiere seguimiento", CALLBACK_SCHEDULED: "Rellamada agendada",
   HUMAN_ESCALATION: "Escalado a asesor", WRONG_PERSON: "No era el titular", EXPLICIT_REFUSAL: "Negativa explícita",
   NO_ANSWER: "Sin respuesta", ABANDONED: "Abandonada", ALTERNATIVE_DATE: "Fecha alternativa", PARTIAL_PAYMENT: "Pago parcial",
+  MESSAGE_SENT: "Mensaje enviado", DO_NOT_CONTACT: "Pidió no ser contactado", FAILED: "Falla técnica",
 };
 
 export const operatorLabels: Record<string, string> = {
