@@ -1,6 +1,6 @@
-import { CircleCheck, CircleDashed, ExternalLink, FileX2, Handshake } from "lucide-react";
+import { CircleCheck, CircleDashed, ExternalLink, FileX2, Handshake, TriangleAlert } from "lucide-react";
 import { commitmentStatusLabels, commitmentTypeLabels, paymentLinkStatusLabels } from "@/lib/conversation";
-import { dateLabel, dateTimeLabel, humanize, money, outcomeLabels } from "@/lib/prevention";
+import { dateLabel, dateTimeLabel, humanize, money, outcomeLabels, unresolvedPlaceholders } from "@/lib/prevention";
 import type { Commitment, PaymentLink } from "@/lib/types";
 
 export function CommitmentStatus({ status }: { status: string }) {
@@ -13,6 +13,7 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
 
 export function CommitmentCard({ commitment, links, offerName }: { commitment: Commitment; links: PaymentLink[]; offerName: string | null }) {
   const moved = commitment.original_due_date && commitment.committed_date && commitment.original_due_date !== commitment.committed_date;
+  const missing = unresolvedPlaceholders(commitment.terms_text);
   return <section className="promise-card" aria-labelledby={`promise-${commitment.id}`}>
     <div className="promise-head">
       <span className="promise-icon"><Handshake size={22} /></span>
@@ -25,10 +26,12 @@ export function CommitmentCard({ commitment, links, offerName }: { commitment: C
     <div className="promise-grid">
       <div><span>Oferta</span><strong>{offerName ?? commitmentTypeLabels[commitment.commitment_type] ?? humanize(commitment.offer_code)}</strong><small>{commitment.offer_code}</small></div>
       <div><span>Monto</span><strong>{money(commitment.amount)}</strong></div>
-      <div><span>Fecha comprometida</span><strong>{dateLabel(commitment.committed_date)}</strong>{moved && <small>Vencía {dateLabel(commitment.original_due_date)}</small>}</div>
-      <div><span>Registrada</span><strong>{dateTimeLabel(commitment.created_at)}</strong></div>
+      <div><span>Fecha comprometida</span><strong>{dateLabel(commitment.committed_date, true)}</strong>{moved && <small>Vencía {dateLabel(commitment.original_due_date, true)}</small>}</div>
+      <div><span>Registrada</span><strong>{dateTimeLabel(commitment.created_at, true)}</strong></div>
     </div>
-    {commitment.terms_text && <p className="promise-terms">{commitment.terms_text}</p>}
+    {missing.length > 0
+      ? <p className="alert-strip alert-warn"><TriangleAlert size={15} /><span><b>Condiciones incompletas en el registro.</b> Faltan datos ({missing.join(", ")}); no usar este texto como condiciones aceptadas. Monto y fecha de arriba son los registrados.</span></p>
+      : commitment.terms_text && <p className="promise-terms">{commitment.terms_text}</p>}
     <div className="promise-checks">
       <Check ok={commitment.customer_confirmed} label="Cliente confirmó" />
       <Check ok={commitment.policy_validated} label="Validada por política" />
@@ -41,7 +44,8 @@ export function CommitmentCard({ commitment, links, offerName }: { commitment: C
   </section>;
 }
 
-export function NoCommitmentCard({ outcome, reason, summary }: { outcome: string | null; reason: string | null; summary: string | null }) {
+/** agreementHint: la conversación tuvo una oferta validada o una confirmación del cliente, pero no hay promesa registrada. */
+export function NoCommitmentCard({ outcome, reason, summary, agreementHint = null }: { outcome: string | null; reason: string | null; summary: string | null; agreementHint?: string | null }) {
   return <section className="promise-card promise-card-empty">
     <div className="promise-head">
       <span className="promise-icon"><FileX2 size={22} /></span>
@@ -50,6 +54,7 @@ export function NoCommitmentCard({ outcome, reason, summary }: { outcome: string
         <strong className="promise-receipt">Sin promesa de pago</strong>
       </div>
     </div>
+    {agreementHint && <p className="alert-strip alert-warn"><TriangleAlert size={15} /><span><b>Acuerdo por verificar.</b> {agreementHint} No hay una promesa registrada: revise condiciones y confirmación antes de dar el caso por cerrado.</span></p>}
     <p className="promise-terms"><b>{humanize(outcome, outcomeLabels)}</b>{reason ? ` · ${reason}` : ""}</p>
     {summary && <p className="promise-summary">{summary}</p>}
   </section>;
