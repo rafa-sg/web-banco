@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { PhoneOff, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { hangupConversation } from "@/app/(app)/actions";
 import { humanize, outcomeLabels } from "@/lib/prevention";
 
-/** "Colgar": pide confirmación y cierra la conversación en el agente para que no quede abierta. */
+/**
+ * "Colgar": pide confirmación y cierra la conversación en el agente para que no quede abierta.
+ * Modal y aviso van en un portal a <body>: la tarjeta usa transform al hover, y un position:fixed
+ * dentro de un ancestro con transform queda anclado a la tarjeta (el fondo salta al mover el mouse).
+ */
 export function HangupButton({ conversationId, customerName, channel = "voice", variant = "outline" }: { conversationId: string; customerName: string; channel?: string; variant?: "outline" | "default" }) {
   const isCall = channel === "voice";
   const action = isCall ? "Colgar" : "Cerrar";
@@ -47,7 +52,7 @@ export function HangupButton({ conversationId, customerName, channel = "voice", 
       <PhoneOff size={13} /> {action}
     </Button>
 
-    {confirming && <div className="modal-backdrop" role="presentation" onClick={() => !pending && close()}>
+    {confirming && createPortal(<div className="modal-backdrop" role="presentation" onClick={() => !pending && close()}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby={`hangup-${conversationId}`} onClick={event => event.stopPropagation()}>
         <div className="modal-heading"><h2 id={`hangup-${conversationId}`}>¿{action} la {isCall ? "llamada" : "conversación"} con {customerName}?</h2><button className="icon-link" aria-label="Cerrar" onClick={close} disabled={pending}><X size={16} /></button></div>
         <p>Se cierra con el resultado que tenga hasta ahora. Si ya se registró una promesa, se conserva y se envía su confirmación.</p>
@@ -58,12 +63,12 @@ export function HangupButton({ conversationId, customerName, channel = "voice", 
         </ul>
         <div className="modal-actions"><Button ref={cancel} variant="outline" onClick={close} disabled={pending}>Seguir {isCall ? "en la llamada" : "en la conversación"}</Button><Button className="button-danger-solid" onClick={hangup} disabled={pending}><PhoneOff size={14} /> {pending ? "Cerrando…" : action}</Button></div>
       </div>
-    </div>}
+    </div>, document.body)}
 
-    {message && <div className={`toast ${message.ok ? "toast-ok" : "toast-error"}`} role="status">
+    {message && createPortal(<div className={`toast ${message.ok ? "toast-ok" : "toast-error"}`} role="status">
       {!message.ok && <TriangleAlert size={17} />}
       <span>{message.text}</span>
       <button aria-label="Cerrar aviso" onClick={() => setMessage(null)}><X size={15} /></button>
-    </div>}
+    </div>, document.body)}
   </>;
 }
