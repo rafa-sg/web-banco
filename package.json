@@ -1,0 +1,15 @@
+{
+  "name": "bancoagricola-analytics",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "engines": { "node": ">=20.9.0" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:dashboard": "pnpm --filter @bancoagricola/dashboard dev",
+    "build": "turbo run build",
+    "start": "pnpm --filter @bancoagricola/dashboard start",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": { "turbo": "^2.5.0" }
+}

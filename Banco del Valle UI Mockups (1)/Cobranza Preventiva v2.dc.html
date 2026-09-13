@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F7F5F1;font-family:'Instrument Sans',system-ui,sans-serif;color:#2B2A28;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#2B2A28}a:hover{color:#8A5A12}
+@keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-360px 0}100%{background-position:360px 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D9D4CB;border-radius:8px;border:3px solid #F7F5F1}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;min-height:640px;background:#F7F5F1;overflow:hidden">
+
+  <!-- SIDEBAR -->
+  <aside style="width:236px;flex:none;background:#2B2A28;color:#F7F5F1;display:flex;flex-direction:column;padding:20px 0 14px">
+    <div style="display:flex;align-items:center;gap:11px;padding:0 18px 18px">
+      <div style="width:28px;height:28px;display:flex;flex-direction:column;justify-content:center;gap:3.5px;flex:none">
+        <div style="height:5px;width:18px;background:#FFCE1F;border-radius:2px;transform:skewY(-6deg)"></div>
+        <div style="height:5px;width:25px;background:#F2C200;border-radius:2px;transform:skewY(-6deg)"></div>
+        <div style="height:5px;width:21px;margin-left:4px;background:#8E877E;border-radius:2px;transform:skewY(-6deg)"></div>
+      </div>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:700;letter-spacing:-.2px;line-height:1.15">{{ entidad }}</div>
+        <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#A19A8F;margin-top:2px">Cobranza preventiva</div>
+      </div>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:0 11px;flex:1;overflow-y:auto">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="7">
+        <button onClick="{{ item.go }}" style="{{ item.style }}">
+          <span style="{{ item.dot }}"></span>
+          <span style="flex:1;text-align:left">{{ item.label }}</span>
+          <span style="{{ item.badgeStyle }}">{{ item.badge }}</span>
+        </button>
+      </sc-for>
+    </nav>
+
+    <div style="padding:12px 18px 0;margin:12px 11px 0;border-top:1px solid #3E3C39">
+      <div style="font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#78726A;font-weight:600;margin-bottom:7px">Rol activo</div>
+      <div style="display:flex;gap:4px;margin-bottom:11px">
+        <sc-for list="{{ roles }}" as="r" hint-placeholder-count="3">
+          <button onClick="{{ r.go }}" style="{{ r.style }}">{{ r.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#A19A8F">
+        <span style="width:24px;height:24px;border-radius:50%;background:#4A4744;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:#F7F5F1;flex:none">MR</span>
+        <span style="line-height:1.3">Mariela Rivas<br><span style="color:#78726A">{{ rolActual }}</span></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main style="flex:1;min-width:0;overflow-y:auto;display:flex;flex-direction:column">
+
+    <header style="position:sticky;top:0;z-index:12;background:rgba(247,245,241,.94);backdrop-filter:blur(8px);border-bottom:1px solid #E7E4DE">
+      <div style="padding:14px 28px 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#8E877E;font-weight:600">{{ crumb }}</div>
+          <h1 style="margin:3px 0 0;font-size:20px;font-weight:600;letter-spacing:-.4px">{{ title }}</h1>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;background:#FFF8E6;border:1px solid #F2DFA8;border-radius:999px;padding:6px 12px">
+          <span style="width:7px;height:7px;border-radius:50%;background:#E5A100;animation:pulse 1.8s ease-in-out infinite;display:block"></span>
+          <span style="font-size:10.5px;font-weight:600;color:#6B5300;letter-spacing:.03em">MODO DEMOSTRACIÓN · datos ficticios</span>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8E877E">12 sep 2026 · 09:41 (GMT−6)</div>
+      </div>
+
+      <div style="padding:0 28px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onClick="{{ reiniciar }}" style="font:600 11.5px 'Instrument Sans',sans-serif;background:#fff;border:1px solid #E0DCD5;border-radius:7px;padding:7px 12px;cursor:pointer;color:#4C4841">Reiniciar</button>
+          <button onClick="{{ avanzar }}" style="font:600 11.5px 'Instrument Sans',sans-serif;background:#2B2A28;border:none;border-radius:7px;padding:7px 14px;cursor:pointer;color:#FFCE1F">{{ etiquetaAvanzar }}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:200px">
+          <sc-for list="{{ pasos }}" as="p" hint-placeholder-count="8">
+            <span onClick="{{ p.go }}" style="{{ p.style }}" title="{{ p.label }}"></span>
+          </sc-for>
+        </div>
+        <div style="font-size:11.5px;color:#6B665E;max-width:420px;text-align:right;line-height:1.4"><span style="font-family:'IBM Plex Mono',monospace;color:#9A938A">{{ pasoNum }}</span> {{ pasoLabel }}</div>
+      </div>
+    </header>
+
+    <div style="padding:22px 28px 56px;max-width:1420px;width:100%">
+
+      <!-- ===================== INICIO ===================== -->
+      <sc-if value="{{ esInicio }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <section>
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+              <h2 style="margin:0;font-size:13.5px;font-weight:600">Operación de hoy</h2>
+              <span style="font-size:11px;color:#8E877E">Clientes únicos · 12 sep, actualizado hace 6 s</span>
+              <span style="width:7px;height:7px;border-radius:50%;background:#2F9E6B;animation:pulse 1.8s ease-in-out infinite;display:block"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
+              <sc-for list="{{ hoy }}" as="k" hint-placeholder-count="7">
+                <div style="background:#fff;border:1px solid #E7E4DE;border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:6px;min-height:96px">
+                  <div style="font-size:11px;font-weight:600;color:#6B665E;line-height:1.35">{{ k.label }}</div>
+                  <div style="display:flex;align-items:baseline;gap:7px">
+                    <span style="{{ k.valStyle }}">{{ k.value }}</span>
+                    <span style="font-size:11px;color:#8E877E">{{ k.unidad }}</span>
+                  </div>
+                  <div style="font-size:10.5px;color:#8E877E;margin-top:auto;line-height:1.4">{{ k.note }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;align-items:start">
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:600">Embudo de gestión</h3>
+                <span style="font-size:10.5px;color:#8E877E">Acumulado 30 días · clientes únicos</span>
+              </div>
+              <p style="margin:0 0 15px;font-size:11px;color:#8E877E">Cada tasa se muestra sobre su denominador explícito.</p>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <sc-for list="{{ embudo }}" as="e" hint-placeholder-count="5">
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px">
+                      <span style="font-size:12px;font-weight:500">{{ e.label }}</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4C4841">{{ e.detalle }}</span>
+                    </div>
+                    <div style="height:20px;border-radius:5px;background:#F0EEE9;overflow:hidden">
+                      <div style="{{ e.barStyle }}"></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:600">Acumulado 30 días</h3>
+                <span style="font-size:10.5px;color:#8E877E">Base: 1,562 clientes elegibles</span>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ acumulado }}" as="a" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #F4F2EE">
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:12px;color:#4C4841">{{ a.label }}</span>
+                      <span style="display:block;font-size:10.5px;color:#9A938A;margin-top:2px">{{ a.denominador }}</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;white-space:nowrap">{{ a.valor }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin:13px 0 0;font-size:10.5px;line-height:1.5;color:#9A938A">Estas cifras describen la operación observada. No constituyen una medición de mora evitada: eso requiere comparar cohortes equivalentes.</p>
+            </section>
+          </div>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #EFEDE8">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Actividad en curso</h3>
+              <span style="width:7px;height:7px;border-radius:50%;background:#2F9E6B;animation:pulse 1.8s ease-in-out infinite;display:block"></span>
+              <span style="font-size:11px;color:#8E877E">{{ conteoActividad }}</span>
+            </div>
+            <div style="overflow-x:auto"><div style="min-width:940px">
+              <div style="display:grid;grid-template-columns:1.5fr .9fr 1.1fr .7fr 1.1fr 1.4fr;gap:12px;padding:10px 18px;background:#FBFAF8;border-bottom:1px solid #EFEDE8;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#8E877E;font-weight:600">
+                <span>Cliente</span><span>Canal</span><span>Etapa</span><span>Duración</span><span>Estado</span><span>Siguiente acción</span>
+              </div>
+              <sc-for list="{{ actividad }}" as="a" hint-placeholder-count="5">
+                <div onClick="{{ a.abrir }}" style="display:grid;grid-template-columns:1.5fr .9fr 1.1fr .7fr 1.1fr 1.4fr;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid #F4F2EE;cursor:pointer" style-hover="background:#FBFAF8">
+                  <span style="min-width:0">
+                    <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.nombre }}</span>
+                    <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9A938A">{{ a.id }}</span>
+                  </span>
+                  <span style="{{ a.canalStyle }}">{{ a.canal }}</span>
+                  <span style="font-size:12px;color:#4C4841">{{ a.etapa }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#6B665E">{{ a.duracion }}</span>
+                  <span style="{{ a.estadoStyle }}">{{ a.estado }}</span>
+                  <span style="font-size:12px;color:#4C4841">{{ a.siguiente }}</span>
+                </div>
+              </sc-for>
+            </div></div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== COLA ===================== -->
+      <sc-if value="{{ esCola }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:13px">
+
+          <div style="background:#FFF8E6;border:1px solid #F2DFA8;border-radius:10px;padding:12px 16px;font-size:11.5px;line-height:1.55;color:#5A4A1E">
+            La <strong>prioridad de atención</strong> proviene de reglas simuladas sobre hechos verificables (proximidad del vencimiento, atrasos previos, compromiso vencido, dificultad comunicada). No es una probabilidad estadística validada ni el score crediticio del cliente. No se usan edad, género ni zona de residencia.
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ filtrosPrio }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:6px;border-left:1px solid #E0DCD5;padding-left:10px">
+              <sc-for list="{{ estadosDemo }}" as="e" hint-placeholder-count="4">
+                <button onClick="{{ e.go }}" style="{{ e.style }}">{{ e.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #EFEDE8">
+              <span style="width:7px;height:7px;border-radius:50%;background:#2F9E6B;animation:pulse 1.8s ease-in-out infinite;display:block"></span>
+              <span style="font-size:12px;font-weight:600">Cola de atención preventiva</span>
+              <span style="font-size:11px;color:#8E877E">{{ resumenCola }}</span>
+              <div style="flex:1"></div>
+              <button onClick="{{ toggleOrden }}" style="font:500 11px 'Instrument Sans',sans-serif;background:#F7F5F1;border:1px solid #E0DCD5;border-radius:7px;padding:6px 11px;cursor:pointer;color:#4C4841">Ordenar por {{ ordenLabel }}</button>
+            </div>
+
+            <sc-if value="{{ colaCargando }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:14px 18px 18px">
+                <sc-for list="{{ skeleton }}" as="s" hint-placeholder-count="5">
+                  <div style="height:44px;border-radius:8px;margin-bottom:8px;background:linear-gradient(90deg,#F4F2EE 0%,#E7E4DE 50%,#F4F2EE 100%);background-size:360px 100%;animation:shimmer 1.4s linear infinite"></div>
+                </sc-for>
+                <div style="display:flex;align-items:center;justify-content:center;gap:9px;padding-top:8px;font-size:11.5px;color:#8E877E">
+                  <span style="width:13px;height:13px;border-radius:50%;border:2px solid #E0DCD5;border-top-color:#E5A100;animation:spin .8s linear infinite;display:block"></span>
+                  Recalculando prioridades con las reglas vigentes…
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ colaVacia }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:58px 24px;text-align:center">
+                <div style="width:42px;height:42px;border-radius:11px;background:#EAF4EF;border:1px solid #D9E9E0;margin:0 auto 13px;display:flex;align-items:center;justify-content:center">
+                  <span style="width:13px;height:13px;border-radius:50%;background:#2F9E6B;display:block"></span>
+                </div>
+                <div style="font-size:14px;font-weight:600">Sin casos para este filtro</div>
+                <p style="margin:7px auto 0;max-width:44ch;font-size:12.5px;line-height:1.55;color:#8E877E">Ningún cliente de la cartera cumple las condiciones seleccionadas. La cola se actualiza conforme llegan nuevos eventos.</p>
+                <button onClick="{{ limpiarFiltros }}" style="margin-top:15px;font:600 12px 'Instrument Sans',sans-serif;background:#2B2A28;color:#F7F5F1;border:none;border-radius:8px;padding:9px 16px;cursor:pointer">Quitar filtros</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ colaError }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:52px 24px;text-align:center">
+                <div style="width:42px;height:42px;border-radius:11px;background:#FBE3DC;border:1px solid #F0C9BF;margin:0 auto 13px;display:flex;align-items:center;justify-content:center">
+                  <span style="width:3px;height:16px;border-radius:2px;background:#C4452B;display:block"></span>
+                </div>
+                <div style="font-size:14px;font-weight:600">No se pudo cargar la cola</div>
+                <p style="margin:7px auto 0;max-width:48ch;font-size:12.5px;line-height:1.55;color:#8E877E">El servicio de prioridades no respondió. Los datos mostrados podrían estar desactualizados. Último cálculo correcto: hoy 08:55.</p>
+                <button onClick="{{ limpiarFiltros }}" style="margin-top:15px;font:600 12px 'Instrument Sans',sans-serif;background:#2B2A28;color:#F7F5F1;border:none;border-radius:8px;padding:9px 16px;cursor:pointer">Reintentar</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ colaDatos }}" hint-placeholder-val="{{ true }}">
+              <div style="overflow-x:auto"><div style="min-width:1180px">
+                <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr .9fr .8fr 1.5fr 1fr 1.3fr .9fr;gap:11px;padding:10px 18px;background:#FBFAF8;border-bottom:1px solid #EFEDE8;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#8E877E;font-weight:600">
+                  <span>Cliente / producto</span><span>Cuota · saldo</span><span>Vence</span><span>Días</span><span>Prioridad</span><span>Motivos</span><span>Último contacto</span><span>Próxima acción</span><span>Responsable</span>
+                </div>
+                <sc-for list="{{ cola }}" as="c" hint-placeholder-count="8">
+                  <div onClick="{{ c.abrir }}" style="display:grid;grid-template-columns:1.5fr 1fr .8fr .9fr .8fr 1.5fr 1fr 1.3fr .9fr;gap:11px;align-items:center;padding:12px 18px;border-bottom:1px solid #F4F2EE;cursor:pointer" style-hover="background:#FBFAF8">
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.nombre }}</span>
+                      <span style="display:block;font-size:10.5px;color:#8E877E">{{ c.producto }}</span>
+                    </span>
+                    <span style="min-width:0">
+                      <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:12px">{{ c.cuota }}</span>
+                      <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8E877E">{{ c.saldo }}</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4C4841">{{ c.vence }}</span>
+                    <span style="{{ c.diasStyle }}">{{ c.diasTxt }}</span>
+                    <span style="{{ c.prioStyle }}">{{ c.prioridad }}</span>
+                    <span style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                      <sc-for list="{{ c.motivos }}" as="m" hint-placeholder-count="2">
+                        <span style="font-size:10.5px;color:#6B665E;line-height:1.35">· {{ m }}</span>
+                      </sc-for>
+                    </span>
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:11.5px;color:#4C4841">{{ c.ultimoContacto }}</span>
+                      <span style="{{ c.acuerdoStyle }}">{{ c.acuerdoTxt }}</span>
+                    </span>
+                    <span style="font-size:12px;color:#4C4841;line-height:1.35">{{ c.nba }}</span>
+                    <span style="font-size:11.5px;color:#6B665E">{{ c.responsable }}</span>
+                  </div>
+                </sc-for>
+              </div></div>
+            </sc-if>
+          </section>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:18px 20px">
+            <h3 style="margin:0 0 4px;font-size:13px;font-weight:600">Por qué se recomienda cada acción</h3>
+            <p style="margin:0 0 14px;font-size:11px;color:#8E877E">Dato de origen · fecha del dato · acción sugerida.</p>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ explicaciones }}" as="x" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:minmax(140px,1fr) minmax(160px,1.6fr) minmax(140px,1.1fr);gap:16px;padding:12px 0;border-top:1px solid #F4F2EE;align-items:baseline">
+                  <span style="font-size:12px;font-weight:600">{{ x.cliente }}</span>
+                  <span style="font-size:11.5px;color:#6B665E;line-height:1.5">{{ x.origen }} <span style="font-family:'IBM Plex Mono',monospace;color:#9A938A">({{ x.fecha }})</span></span>
+                  <span style="font-size:11.5px;color:#2B2A28;font-weight:500">{{ x.accion }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== CASO ===================== -->
+      <sc-if value="{{ esCaso }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:13px">
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:17px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <span style="width:42px;height:42px;border-radius:11px;background:#2B2A28;color:#FFCE1F;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex:none">CM</span>
+            <div style="min-width:170px">
+              <div style="font-size:17px;font-weight:600;letter-spacing:-.3px">Carlos Martínez</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8E877E;margin-top:2px">CLI-04821 · caso CAS-2291 · Préstamo personal</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span style="{{ estadoCasoStyle }}">{{ estadoCaso }}</span>
+              <span style="font-size:11px;font-weight:500;background:#F7F5F1;color:#4C4841;border:1px solid #E7E4DE;border-radius:7px;padding:5px 10px">Cuota $300.00 · vence 15 sep</span>
+            </div>
+          </section>
+
+          <sc-if value="{{ tomado }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#F0F6FF;border:1px solid #C9DCF5;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <span style="width:8px;height:8px;border-radius:50%;background:#2B6CB0;display:block"></span>
+              <span style="font-size:12px;font-weight:600;color:#1F4E82">Atención humana activa · M. Rivas</span>
+              <span style="font-size:11.5px;color:#3A6799;flex:1;min-width:180px">Las acciones automáticas quedaron en pausa: no se enviarán recordatorios ni mensajes del agente mientras el caso esté tomado.</span>
+              <button onClick="{{ soltarCaso }}" style="font:600 11.5px 'Instrument Sans',sans-serif;background:#fff;color:#1F4E82;border:1px solid #C9DCF5;border-radius:7px;padding:7px 12px;cursor:pointer">Devolver al agente</button>
+            </div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:14px;align-items:start">
+
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:18px 20px 20px">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                <sc-for list="{{ filtrosTL }}" as="f" hint-placeholder-count="5">
+                  <button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+                </sc-for>
+              </div>
+
+              <sc-if value="{{ timelineVacia }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:44px 16px;text-align:center">
+                  <div style="font-size:13.5px;font-weight:600">Sin eventos de este tipo</div>
+                  <p style="margin:6px auto 0;max-width:40ch;font-size:12px;line-height:1.55;color:#8E877E">Avance la demostración o cambie el filtro para ver el resto del caso.</p>
+                </div>
+              </sc-if>
+
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:58px 1fr;gap:12px;align-items:start">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#9A938A;padding-top:3px;text-align:right">{{ t.hora }}</span>
+                    <div style="{{ t.cardStyle }}">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+                        <span style="{{ t.tagStyle }}">{{ t.tag }}</span>
+                        <span style="{{ t.autorStyle }}">{{ t.autor }}</span>
+                      </div>
+                      <div style="{{ t.textoStyle }}">{{ t.texto }}</div>
+                      <sc-if value="{{ t.tieneMeta }}" hint-placeholder-val="{{ false }}">
+                        <div style="{{ t.metaStyle }}">{{ t.meta }}</div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="{{ resultadoStyle }}">
+                <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;opacity:.75">Resultado de la gestión</div>
+                <div style="font-size:16px;font-weight:600;margin-top:6px;letter-spacing:-.3px">{{ resultadoTxt }}</div>
+                <div style="font-size:11.5px;line-height:1.5;margin-top:6px;opacity:.85">{{ resultadoNota }}</div>
+              </div>
+            </section>
+
+            <div style="display:flex;flex-direction:column;gap:13px">
+              <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:18px 20px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px">
+                  <h3 style="margin:0;font-size:13px;font-weight:600">Ficha del caso</h3>
+                  <span style="font-size:10px;color:#8E877E">Origen de cada dato</span>
+                </div>
+                <p style="margin:0 0 13px;font-size:11px;line-height:1.5;color:#8E877E">{{ resumenCaso }}</p>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ ficha }}" as="f" hint-placeholder-count="6">
+                    <div style="padding:11px 0;border-top:1px solid #F4F2EE">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                        <span style="font-size:11px;color:#8E877E">{{ f.label }}</span>
+                        <span style="{{ f.origenStyle }}">{{ f.origen }}</span>
+                      </div>
+                      <div style="{{ f.valorStyle }}">{{ f.valor }}</div>
+                      <sc-if value="{{ f.tieneEvidencia }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+                          <button onClick="{{ f.verEvidencia }}" style="font:500 10.5px 'Instrument Sans',sans-serif;background:#F7F5F1;border:1px solid #E0DCD5;border-radius:6px;padding:4px 9px;cursor:pointer;color:#4C4841">{{ f.etiquetaEvidencia }}</button>
+                          <sc-if value="{{ f.corregible }}" hint-placeholder-val="{{ false }}">
+                            <button onClick="{{ f.corregir }}" style="font:500 10.5px 'Instrument Sans',sans-serif;background:#fff;border:1px solid #E0DCD5;border-radius:6px;padding:4px 9px;cursor:pointer;color:#4C4841">Corregir extracción</button>
+                          </sc-if>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ f.evidenciaAbierta }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:8px;background:#FBFAF8;border:1px solid #EFEDE8;border-left:3px solid #FFCE1F;border-radius:8px;padding:10px 12px">
+                          <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#9A938A;margin-bottom:5px">{{ f.evidenciaRef }}</div>
+                          <div style="font-size:11.5px;line-height:1.5;color:#4C4841">{{ f.evidenciaTexto }}</div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:18px 20px">
+                <h3 style="margin:0 0 12px;font-size:13px;font-weight:600">Acciones</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+                  <sc-for list="{{ acciones }}" as="a" hint-placeholder-count="5">
+                    <button onClick="{{ a.go }}" style="{{ a.style }}">{{ a.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="margin-top:14px;padding-top:12px;border-top:1px solid #F4F2EE">
+                  <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#8E877E;font-weight:600;margin-bottom:8px">Bitácora de decisiones</div>
+                  <div style="display:flex;flex-direction:column;gap:7px">
+                    <sc-for list="{{ bitacora }}" as="b" hint-placeholder-count="4">
+                      <div style="display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:baseline">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#A8A199">{{ b.hora }}</span>
+                        <span style="font-size:11px;line-height:1.45;color:#4C4841">{{ b.texto }} <span style="{{ b.marcaStyle }}">{{ b.marca }}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===================== ACUERDOS ===================== -->
+      <sc-if value="{{ esAcuerdos }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:13px">
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 21px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:5px">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Opciones de plan · Carlos Martínez</h3>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#6B665E">Monto a cubrir $300.00 · sin cargos adicionales</span>
+            </div>
+            <p style="margin:0 0 16px;font-size:11.5px;line-height:1.55;color:#8E877E;max-width:78ch">Distribuir pagos dentro del vencimiento vigente no modifica las condiciones del crédito. Extender fechas más allá del margen autorizado sí las modifica y requiere la aprobación definida en la política.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px">
+              <sc-for list="{{ planes }}" as="p" hint-placeholder-count="3">
+                <div onClick="{{ p.go }}" style="{{ p.cardStyle }}">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <span style="font-size:15px;font-weight:600;letter-spacing:-.2px">{{ p.titulo }}</span>
+                    <span style="{{ p.estadoStyle }}">{{ p.estado }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px;margin-top:11px">
+                    <sc-for list="{{ p.cuotas }}" as="q" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4C4841">
+                        <span>{{ q.fecha }}</span><span>{{ q.monto }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="margin-top:11px;padding-top:9px;border-top:1px solid #F0EEE9;font-size:11px;line-height:1.45;color:#6B665E">{{ p.regla }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <sc-for list="{{ validaciones }}" as="v" hint-placeholder-count="3">
+                <span style="{{ v.style }}">{{ v.texto }}</span>
+              </sc-for>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:13px;align-items:start">
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 21px">
+              <h3 style="margin:0 0 13px;font-size:13.5px;font-weight:600">Acuerdo vigente</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#F0EEE9;border:1px solid #F0EEE9;border-radius:9px;overflow:hidden">
+                <sc-for list="{{ acuerdoDatos }}" as="d" hint-placeholder-count="6">
+                  <div style="background:#fff;padding:11px 13px">
+                    <div style="font-size:10.5px;color:#8E877E">{{ d.label }}</div>
+                    <div style="{{ d.valStyle }}">{{ d.valor }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:14px;padding-top:12px;border-top:1px solid #F4F2EE">
+                <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#8E877E;font-weight:600;margin-bottom:7px">Evidencia de aceptación</div>
+                <div style="font-size:11.5px;line-height:1.55;color:#4C4841">{{ evidenciaAcuerdo }}</div>
+              </div>
+            </section>
+
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 21px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:600">Seguimiento de pagos</h3>
+                <span style="font-size:10.5px;color:#8E877E">Fuente: eventos del core bancario</span>
+              </div>
+              <p style="margin:0 0 14px;font-size:11px;line-height:1.5;color:#8E877E">Un acuerdo aceptado no cuenta como pago. Un abono parcial no elimina la mora del ciclo.</p>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ pagosPlan }}" as="p" hint-placeholder-count="2">
+                  <div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #F4F2EE">
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:12.5px;font-weight:500">{{ p.titulo }}</span>
+                      <span style="display:block;font-size:10.5px;color:#8E877E;margin-top:2px">{{ p.nota }}</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600">{{ p.monto }}</span>
+                    <span style="{{ p.estadoStyle }}">{{ p.estado }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid #E7E4DE">
+                <span style="font-size:12px;font-weight:600">Pendiente</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600">{{ pendientePlan }}</span>
+              </div>
+            </section>
+          </div>
+
+          <section style="{{ graciaStyle }}">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:240px">
+                <h3 style="margin:0 0 6px;font-size:13px;font-weight:600">Propuesta: 3 días de gracia automáticos</h3>
+                <p style="margin:0;font-size:11.5px;line-height:1.55;color:#5A4A1E;max-width:74ch">Desactivada por defecto. Requiere política aprobada antes de habilitarse. Modificaría la fecha de exigibilidad de la cuota y la generación de recordatorios; no modifica el cálculo de intereses, el reporte regulatorio ni la clasificación de riesgo del crédito.</p>
+              </div>
+              <button onClick="{{ toggleGracia }}" style="{{ graciaBtn }}">{{ graciaLabel }}</button>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== RESULTADOS ===================== -->
+      <sc-if value="{{ esResultados }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start">
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:13px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:600">Motivos de dificultad declarados</h3>
+                <span style="font-size:10.5px;color:#8E877E">n = 842 conversaciones efectivas</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ motivos }}" as="m" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:minmax(120px,1.5fr) 1fr 58px;align-items:center;gap:11px">
+                    <span style="font-size:11.5px">{{ m.label }}</span>
+                    <span style="height:9px;border-radius:5px;background:#F0EEE9;overflow:hidden;display:block"><span style="{{ m.barStyle }}"></span></span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;color:#4C4841">{{ m.valor }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:600">Continuidad en WhatsApp</h3>
+                <span style="font-size:10.5px;color:#8E877E">30 días</span>
+              </div>
+              <p style="margin:0 0 13px;font-size:11px;color:#8E877E">Un mensaje entregado no equivale a una respuesta ni a una gestión continuada.</p>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ waFunnel }}" as="w" hint-placeholder-count="6">
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px">
+                      <span style="font-size:11.5px">{{ w.label }}</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4C4841">{{ w.detalle }}</span>
+                    </div>
+                    <div style="height:14px;border-radius:4px;background:#F0EEE9;overflow:hidden"><div style="{{ w.barStyle }}"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start">
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <h3 style="margin:0 0 13px;font-size:13.5px;font-weight:600">Contactabilidad por canal y horario</h3>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ contactabilidad }}" as="c" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:minmax(110px,1fr) 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid #F4F2EE">
+                    <span style="font-size:12px;font-weight:500">{{ c.canal }}</span>
+                    <span style="font-size:11px;color:#6B665E">{{ c.mejorHorario }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">{{ c.tasa }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+              <h3 style="margin:0 0 13px;font-size:13.5px;font-weight:600">Alternativas ofrecidas y cumplimiento</h3>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ alternativas }}" as="a" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:minmax(120px,1.4fr) auto auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid #F4F2EE">
+                    <span style="font-size:12px">{{ a.label }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8E877E">{{ a.ofrecidas }}</span>
+                    <span style="{{ a.cumpleStyle }}">{{ a.cumplimiento }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin:12px 0 0;font-size:10.5px;line-height:1.5;color:#9A938A">Los planes no se asignan al azar: quienes reciben más cuotas suelen tener mayor dificultad declarada. Las diferencias de cumplimiento no son comparables entre sí sin ajustar por esa selección.</p>
+            </section>
+          </div>
+
+          <section>
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+              <h3 style="margin:0;font-size:13.5px;font-weight:600">Hallazgos</h3>
+              <span style="font-size:11px;color:#8E877E">Cada uno con periodo, muestra, evidencia y limitación</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:13px">
+              <sc-for list="{{ hallazgos }}" as="h" hint-placeholder-count="3">
+                <div style="{{ h.cardStyle }}">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+                    <span style="{{ h.tipoStyle }}">{{ h.tipo }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9A938A">{{ h.periodo }}</span>
+                  </div>
+                  <div style="font-size:13.5px;font-weight:600;line-height:1.4;letter-spacing:-.2px">{{ h.titulo }}</div>
+                  <div style="font-size:11.5px;line-height:1.55;color:#6B665E;margin-top:7px">{{ h.detalle }}</div>
+                  <div style="margin-top:11px;padding-top:9px;border-top:1px solid #F0EEE9;display:flex;flex-direction:column;gap:4px">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8E877E">muestra: {{ h.muestra }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8E877E">evidencia: {{ h.evidencia }}</span>
+                    <span style="font-size:10.5px;color:#9A4F16;line-height:1.45">Limitación: {{ h.limitacion }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:19px 20px">
+            <h3 style="margin:0 0 4px;font-size:13.5px;font-weight:600">Mejora de guiones</h3>
+            <p style="margin:0 0 15px;font-size:11.5px;color:#8E877E">Ninguna propuesta se aplica sola. El prototipo no modifica políticas del banco ni entrena modelos con conversaciones reales.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+              <sc-for list="{{ cicloMejora }}" as="c" hint-placeholder-count="5">
+                <div style="{{ c.style }}">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7">{{ c.num }}</div>
+                  <div style="font-size:12.5px;font-weight:600;margin-top:5px">{{ c.titulo }}</div>
+                  <div style="font-size:11px;line-height:1.45;margin-top:4px;opacity:.8">{{ c.nota }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== POLÍTICAS Y ROLES ===================== -->
+      <sc-if value="{{ esPoliticas }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:980px;display:flex;flex-direction:column;gap:14px">
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:24px 28px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:1px solid #EFEDE8;padding-bottom:16px">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#8E877E;font-weight:600">Documento de gobernanza · ficticio para demostración</div>
+                <h2 style="margin:6px 0 5px;font-size:21px;font-weight:600;letter-spacing:-.5px">Política de contacto preventivo</h2>
+                <div style="font-size:12px;color:#6B665E">Vigente desde el 1 de septiembre de 2026 · zona horaria America/El_Salvador</div>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:#2B2A28;color:#FFCE1F;border-radius:7px;padding:6px 11px">v3.1</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:24px;padding-top:20px">
+              <sc-for list="{{ politicas }}" as="s" hint-placeholder-count="4">
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:10px">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#B3ACA2">{{ s.num }}</span>
+                    <h3 style="margin:0;font-size:14px;font-weight:600;letter-spacing:-.2px">{{ s.titulo }}</h3>
+                  </div>
+                  <sc-for list="{{ s.reglas }}" as="r" hint-placeholder-count="3">
+                    <div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,auto);gap:18px;align-items:baseline;padding:10px 0 10px 24px;border-top:1px solid #F4F2EE">
+                      <span style="min-width:0">
+                        <span style="display:block;font-size:12.5px;font-weight:500">{{ r.label }}</span>
+                        <span style="display:block;font-size:11px;color:#8E877E;line-height:1.45;margin-top:3px">{{ r.nota }}</span>
+                      </span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;text-align:right">{{ r.valor }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:20px 24px">
+            <h3 style="margin:0 0 4px;font-size:13.5px;font-weight:600">Roles y datos visibles</h3>
+            <p style="margin:0 0 14px;font-size:11.5px;color:#8E877E">Cada vista muestra únicamente los datos personales necesarios para la tarea.</p>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ rolesTabla }}" as="r" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(110px,.7fr) minmax(180px,1.4fr) minmax(150px,1.1fr);gap:16px;padding:12px 0;border-top:1px solid #F4F2EE;align-items:baseline">
+                  <span style="{{ r.nombreStyle }}">{{ r.nombre }}</span>
+                  <span style="font-size:11.5px;line-height:1.5;color:#4C4841">{{ r.puede }}</span>
+                  <span style="font-size:11.5px;line-height:1.5;color:#8E877E">{{ r.ve }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:20px 24px">
+            <h3 style="margin:0 0 12px;font-size:13.5px;font-weight:600">Bitácora de decisiones del sistema</h3>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ bitacoraGlobal }}" as="b" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:82px minmax(160px,1.4fr) minmax(140px,1fr) minmax(100px,.7fr);gap:14px;padding:11px 0;border-top:1px solid #F4F2EE;align-items:baseline">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#9A938A">{{ b.hora }}</span>
+                  <span style="font-size:11.5px;line-height:1.45">{{ b.propuesta }}</span>
+                  <span style="{{ b.reglaStyle }}">{{ b.regla }}</span>
+                  <span style="font-size:11px;color:#6B665E">{{ b.quien }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ===================== VISTA CLIENTE ===================== -->
+      <sc-if value="{{ esCliente }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start">
+
+          <div style="width:330px;flex:none;background:#2B2A28;border-radius:26px;padding:11px">
+            <div style="background:#F7F5F1;border-radius:18px;overflow:hidden">
+              <div style="background:#2B2A28;color:#F7F5F1;padding:15px 18px 17px">
+                <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#A19A8F;font-weight:600">Banca móvil · vista previa</div>
+                <div style="font-size:17px;font-weight:600;margin-top:5px;letter-spacing:-.3px">Mi plan de pagos</div>
+              </div>
+              <div style="padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px">
+                <div style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:15px 16px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="width:9px;height:9px;border-radius:50%;background:#2F9E6B;display:block"></span>
+                    <span style="font-size:12.5px;font-weight:600;color:#1F6B4A">{{ planEstadoCliente }}</span>
+                  </div>
+                  <div style="font-size:22px;font-weight:600;letter-spacing:-.6px;margin-top:10px;font-family:'IBM Plex Mono',monospace">{{ planProgreso }}</div>
+                  <div style="font-size:11.5px;color:#6B665E;margin-top:2px">pagos completados</div>
+                  <div style="height:8px;border-radius:5px;background:#F0EEE9;overflow:hidden;margin-top:11px"><div style="{{ planBar }}"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:11px;color:#6B665E">
+                    <span>Pendiente</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#2B2A28">{{ planPendiente }}</span>
+                  </div>
+                </div>
+
+                <div style="background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:15px 16px">
+                  <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#8E877E;font-weight:600">Próximo pago</div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:7px">
+                    <span style="font-size:19px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:-.5px">{{ proxMonto }}</span>
+                    <span style="font-size:12px;color:#4C4841">{{ proxFecha }}</span>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:13px">
+                    <sc-for list="{{ calendario }}" as="d" hint-placeholder-count="2">
+                      <div style="{{ d.style }}">
+                        <div style="font-size:9.5px;opacity:.7">{{ d.mes }}</div>
+                        <div style="font-size:15px;font-weight:600;font-family:'IBM Plex Mono',monospace">{{ d.dia }}</div>
+                        <div style="font-size:9px;margin-top:3px">{{ d.estado }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="background:#EAF4EF;border:1px solid #D9E9E0;border-radius:12px;padding:13px 15px">
+                  <div style="font-size:12px;line-height:1.5;color:#1F6B4A">{{ mensajeCliente }}</div>
+                </div>
+
+                <button style="font:600 12.5px 'Instrument Sans',sans-serif;background:#2B2A28;color:#FFCE1F;border:none;border-radius:10px;padding:13px;cursor:pointer;width:100%">Solicitar ayuda</button>
+                <div style="font-size:10px;line-height:1.5;color:#9A938A;text-align:center">Este plan no modifica su historial ni su calificación crediticia. Consulte su historial en la sección correspondiente.</div>
+              </div>
+            </div>
+          </div>
+
+          <section style="flex:1;min-width:280px;background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:20px 22px">
+            <h3 style="margin:0 0 4px;font-size:13.5px;font-weight:600">Qué se mantiene separado</h3>
+            <p style="margin:0 0 15px;font-size:11.5px;color:#8E877E">El cliente ve su plan, no la prioridad interna de atención.</p>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ separacion }}" as="s" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(130px,.8fr) minmax(180px,1.6fr);gap:16px;padding:12px 0;border-top:1px solid #F4F2EE;align-items:baseline">
+                  <span style="font-size:12.5px;font-weight:600">{{ s.que }}</span>
+                  <span style="font-size:11.5px;line-height:1.55;color:#6B665E">{{ s.donde }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:16px;background:#FFF8E6;border:1px solid #F2DFA8;border-radius:10px;padding:13px 15px;font-size:11.5px;line-height:1.6;color:#5A4A1E">
+              El reconocimiento del cumplimiento se expresa con mensajes respetuosos y sin comparaciones entre clientes. No se muestran rankings, insignias competitivas ni etiquetas personales, y no se promete un aumento de calificación crediticia por cada pago.
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;entidad&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Banco del Valle&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Identidad&quot;}}">
+class Component extends DCLogic {
+  state = { screen:'inicio', paso:0, filtroTL:'Todo', cola:'datos', prio:'Todas', orden:'prioridad',
+            tomado:false, plan:'2x150', evidencia:null, corregido:false, gracia:false, rol:'Operador', extra:[] };
+
+  // ---------- datos ficticios ----------
+  acum = { elegibles:1562, contactados:1180, efectivas:842, acuerdos:463, conPago:329, dias:30 };
+
+  cartera = [
+    {id:'CLI-04821',nombre:'Carlos Martínez',producto:'Préstamo personal',cuota:300,saldo:3120,vence:'15 sep',dias:3,
+     motivos:['Vence en 3 días','2 atrasos en 12 ciclos'],ultimo:'Hoy 09:12 · voz',responsable:'Agente IA',principal:true},
+    {id:'CLI-07734',nombre:'Rosa Elena Cruz',producto:'Tarjeta clásica',cuota:85,saldo:812,vence:'14 sep',dias:2,
+     motivos:['Vence en 2 días','Sin atrasos previos'],ultimo:'Hoy 08:40 · voz',responsable:'Agente IA',
+     contactado:true,efectiva:true,resultado:'Seguimiento programado',estado:'Recordatorio aceptado',canal:'Voz',
+     etapa:'Cerrada',duracion:'2:10',siguiente:'Recordatorio 13 sep 09:00',horario:'Mañana',
+     nba:'Recordatorio confirmado',prioridad:58},
+    {id:'CLI-02190',nombre:'Julio Meléndez',producto:'Crédito agrícola',cuota:420,saldo:14500,vence:'16 sep',dias:4,
+     motivos:['Dificultad económica declarada','Compromiso vencido en jul'],ultimo:'Ayer 16:20 · voz',responsable:'J. Cabrera',
+     contactado:true,efectiva:true,resultado:'Derivación a asesor',estado:'Requiere atención humana',canal:'Voz',
+     etapa:'Derivada',duracion:'6:45',siguiente:'Llamada de asesor 12 sep 14:00',horario:'Tarde',
+     nba:'Evaluar reestructura con asesor',prioridad:86,humano:true},
+    {id:'CLI-09120',nombre:'Delmy Hernández',producto:'Tarjeta clásica',cuota:60,saldo:430,vence:'11 sep',dias:-1,
+     motivos:['Cliente afirma haber pagado','1 día de atraso'],ultimo:'Hoy 07:55 · WhatsApp',responsable:'Operaciones',
+     contactado:true,efectiva:true,resultado:'Pago por verificar',estado:'Pago por verificar',canal:'WhatsApp',
+     etapa:'Verificación',duracion:'1:05',siguiente:'Conciliar con core bancario',horario:'Mañana',
+     nba:'Verificar pago antes de contactar',prioridad:44,verificar:true},
+    {id:'CLI-06612',nombre:'Ana Beatriz Lara',producto:'Préstamo vehicular',cuota:210,saldo:9240,vence:'18 sep',dias:6,
+     motivos:['Acuerdo vigente al día'],ultimo:'05 sep · WhatsApp',responsable:'Agente IA',
+     contactado:true,efectiva:true,acuerdo:true,pago:true,montoPago:210,resultado:'Acuerdo aceptado',
+     estado:'Acuerdo con pago confirmado',canal:'WhatsApp',etapa:'Cerrada',duracion:'—',
+     siguiente:'Sin acción hasta 18 sep',horario:'Tarde',nba:'Sin acción requerida',prioridad:22,
+     acuerdoTxt:'2 pagos · 1 cumplido'},
+    {id:'CLI-01458',nombre:'Mauricio Portillo',producto:'Tarjeta oro',cuota:180,saldo:2015,vence:'13 sep',dias:1,
+     motivos:['Vence mañana','3 atrasos en 12 ciclos'],ultimo:'Sin contacto en 14 días',responsable:'Agente IA',
+     estado:'Programada',canal:'Voz',etapa:'En cola',duracion:'—',siguiente:'Llamada preventiva 12 sep 11:00',
+     horario:'Mañana',nba:'Llamada preventiva',prioridad:79},
+    {id:'CLI-08903',nombre:'Sandra Guevara',producto:'Préstamo personal',cuota:145,saldo:1470,vence:'20 sep',dias:8,
+     motivos:['Ingreso variable declarado'],ultimo:'Hoy 09:05 · voz (sin respuesta)',responsable:'Agente IA',
+     contactado:true,estado:'Contacto no logrado',canal:'Voz',etapa:'Reintento',duracion:'0:22',
+     siguiente:'Reintento 13 sep 17:30',horario:'Tarde',nba:'Reintentar en horario vespertino',prioridad:51},
+    {id:'CLI-03377',nombre:'Óscar Ramírez',producto:'Crédito agrícola',cuota:100,saldo:6880,vence:'22 sep',dias:10,
+     motivos:['Acuerdo vigente, primer pago pendiente'],ultimo:'08 sep · WhatsApp',responsable:'Agente IA',
+     contactado:true,efectiva:true,acuerdo:true,resultado:'Acuerdo aceptado',estado:'Acuerdo sin pago aún',
+     canal:'WhatsApp',etapa:'Seguimiento',duracion:'—',siguiente:'Recordatorio T−1 el 21 sep',horario:'Mañana',
+     nba:'Recordatorio antes del primer pago',prioridad:47,acuerdoTxt:'3 pagos · 0 cumplidos'},
+    {id:'CLI-05544',nombre:'Rafael Ayala',producto:'Préstamo hipotecario',cuota:640,saldo:41200,vence:'17 sep',dias:5,
+     motivos:['Monto en disputa','Compromiso vencido en ago'],ultimo:'10 sep · voz',responsable:'M. Rivas',
+     contactado:true,efectiva:true,resultado:'Deuda en disputa',estado:'Requiere atención humana',canal:'Voz',
+     etapa:'En revisión',duracion:'—',siguiente:'Revisión de estado de cuenta',horario:'Tarde',
+     nba:'Revisar aplicación del pago de agosto',prioridad:74,humano:true},
+    {id:'CLI-04410',nombre:'Iván Segovia',producto:'Tarjeta clásica',cuota:95,saldo:640,vence:'19 sep',dias:7,
+     motivos:['Olvido declarado en ciclo anterior'],ultimo:'Hoy 09:30 · WhatsApp',responsable:'Agente IA',
+     contactado:true,estado:'Conversación activa',canal:'WhatsApp',etapa:'En conversación',duracion:'3:40',
+     siguiente:'Esperando respuesta del cliente',horario:'Mañana',nba:'Continuar conversación',prioridad:38,
+     waActiva:true},
+    {id:'CLI-07781',nombre:'Marta Pineda',producto:'Préstamo personal',cuota:230,saldo:2890,vence:'15 sep',dias:3,
+     motivos:['Vence en 3 días','Gasto imprevisto declarado'],ultimo:'Hoy 09:38 · voz',responsable:'Agente IA',
+     contactado:true,estado:'Llamada activa',canal:'Voz',etapa:'Conversando',duracion:'1:12',
+     siguiente:'Cierre de conversación',horario:'Mañana',nba:'Ofrecer distribución de pagos',prioridad:69,
+     llamadaActiva:true},
+    {id:'CLI-02867',nombre:'Nora Villalta',producto:'Préstamo personal',cuota:120,saldo:980,vence:'25 sep',dias:13,
+     motivos:['Sin señales de riesgo'],ultimo:'Sin contacto en 30 días',responsable:'—',
+     estado:'No programada',canal:'—',etapa:'—',duracion:'—',siguiente:'Sin acción',horario:'—',
+     nba:'Sin acción requerida',prioridad:12}
+  ];
+
+  pasosDef = [
+    {n:'0/7',label:'Alerta preventiva generada · aún sin contacto'},
+    {n:'1/7',label:'Llamada iniciada · identificación, verificación y consentimiento'},
+    {n:'2/7',label:'Dificultad comprendida · el ingreso llega el 20'},
+    {n:'3/7',label:'Propuesta dentro de política · opciones presentadas'},
+    {n:'4/7',label:'Aceptación explícita del cliente'},
+    {n:'5/7',label:'Continuidad autorizada en WhatsApp · cliente respondió'},
+    {n:'6/7',label:'Pago confirmado por el core bancario'},
+    {n:'7/7',label:'Panel actualizado · acuerdo con pago confirmado'}
+  ];
+
+  pill(bg,fg){ return 'font-size:9.5px;font-weight:700;letter-spacing:.055em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:'+bg+';color:'+fg+';white-space:nowrap;text-align:center;display:inline-block'; }
+  chipBtn(on){ return 'font:500 11.5px \'Instrument Sans\',sans-serif;padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;border:1px solid '+(on?'#2B2A28':'#E0DCD5')+';background:'+(on?'#2B2A28':'#fff')+';color:'+(on?'#F7F5F1':'#4C4841'); }
+  go(screen){ return () => this.setState({screen}); }
+  usd(n){ return '$ '+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+  pct(a,b){ return Math.round(a/b*100)+'%'; }
+
+  // estado del caso principal según el paso
+  principal(){
+    const p = this.state.paso;
+    return {
+      contactado: p>=1, efectiva: p>=2, acuerdo: p>=4, pago: p>=6, montoPago: p>=6?150:0,
+      llamadaActiva: p>=1 && p<=4, waActiva: p===5,
+      estado: p===0?'Alerta preventiva':p<=4?'Llamada activa':p===5?'WhatsApp activo':p===6?'Pago confirmado':'Acuerdo con pago confirmado',
+      resultado: p>=4?'Acuerdo aceptado':(p>=1?'En gestión':'Sin contacto'),
+      etapa: p===0?'En cola':p<=2?'Comprendiendo':p===3?'Negociando':p===4?'Cerrando':p===5?'Continuidad WhatsApp':'Cerrada',
+      duracion: p===0?'—':'4:12',
+      siguiente: p===0?'Llamada preventiva 12 sep 10:00':p<=3?'Presentar opciones autorizadas':p===4?'Solicitar autorización de WhatsApp':p===5?'Esperar pago del 15 sep':p===6?'Recordatorio T−1 del segundo pago':'Recordatorio 21 sep 09:00',
+      nba: p>=4?'Recordatorio antes del segundo pago':'Ofrecer distribución de pagos dentro del vencimiento',
+      acuerdoTxt: p>=4?(p>=6?'2 pagos · 1 cumplido':'2 pagos · 0 cumplidos'):'Sin acuerdo vigente'
+    };
+  }
+
+  carteraViva(){
+    const pr = this.principal();
+    return this.cartera.map(c => c.principal ? {...c, ...pr, canal: pr.waActiva?'WhatsApp':'Voz'} : c);
+  }
+
+  // ---------- timeline ----------
+  eventos(){
+    const p = this.state.paso, e = [];
+    e.push({t:'sistema',hora:'08:02',autor:'Motor de prioridades',tag:'ALERTA',
+      texto:'Caso elevado a atención preventiva: la cuota de $300.00 vence el 15 de septiembre y el cliente registra 2 atrasos en los últimos 12 ciclos.',
+      meta:'Regla R-07 · proximidad del vencimiento + historial de atrasos. Dato del 12 sep 08:00.'});
+    if(p>=1){
+      e.push({t:'voz',hora:'09:12',autor:'Asistente virtual',tag:'VOZ',
+        texto:'Buenos días. Le saluda el asistente virtual del banco. Le llamo para conversar sobre su próxima cuota. Esta llamada puede ser grabada para fines de calidad y registro, ¿está de acuerdo?',
+        meta:'Identificación del emisor y propósito del contacto declarados en el primer turno.'});
+      e.push({t:'voz',hora:'09:12',autor:'Carlos Martínez',tag:'VOZ',texto:'Sí, está bien.'});
+      e.push({t:'sistema',hora:'09:13',autor:'Registro',tag:'CONSENTIMIENTO',
+        texto:'Consentimiento de grabación registrado. Verificación de identidad completada con dos factores no sensibles antes de mencionar cualquier dato de la deuda.',
+        meta:'No se solicitan contraseñas, PIN ni códigos de verificación en ningún turno.'});
+      e.push({t:'voz',hora:'09:13',autor:'Asistente virtual',tag:'VOZ',texto:'Gracias. ¿Es un buen momento para conversar unos minutos?'});
+      e.push({t:'voz',hora:'09:14',autor:'Carlos Martínez',tag:'VOZ',texto:'Sí, adelante.'});
+    }
+    if(p>=2){
+      e.push({t:'voz',hora:'09:15',autor:'Carlos Martínez',tag:'VOZ',
+        texto:'Este mes se me complicó. Me redujeron las horas y mi pago me entra hasta el 20.',
+        meta:'Dificultad declarada: ingreso posterior al vencimiento. Sentimiento estimado −0.4 (indicador de calidad de atención, no de solvencia).'});
+      e.push({t:'voz',hora:'09:15',autor:'Asistente virtual',tag:'VOZ',
+        texto:'Gracias por explicármelo. Podemos revisar las opciones disponibles para que el pago coincida mejor con sus ingresos. ¿Qué fecha le resultaría viable?'});
+    }
+    if(p>=3){
+      e.push({t:'acuerdo',hora:'09:17',autor:'Motor de políticas',tag:'POLÍTICA',
+        texto:'Opciones habilitadas para este caso: 2 pagos de $150.00 (15 y 22 sep). La opción de 3 pagos de $100.00 excede el margen de 7 días y quedó disponible solo con aprobación de supervisor. La de 4 pagos de $75.00 quedó bloqueada por la política vigente.',
+        meta:'Se ofrecen únicamente alternativas autorizadas. La opción bloqueada no se menciona al cliente.'});
+      e.push({t:'voz',hora:'09:18',autor:'Asistente virtual',tag:'VOZ',
+        texto:'Puede dividir la cuota en dos pagos: $150.00 el 15 de septiembre y $150.00 el 22 de septiembre. El total sigue siendo $300.00 y no se aplican cargos adicionales.'});
+    }
+    if(p>=4){
+      e.push({t:'voz',hora:'09:19',autor:'Carlos Martínez',tag:'VOZ',texto:'Sí, acepto esas dos fechas.',
+        meta:'Aceptación explícita registrada como evidencia del acuerdo.'});
+      e.push({t:'acuerdo',hora:'09:19',autor:'Registro',tag:'ACUERDO',
+        texto:'Acuerdo ACU-1187 creado: 2 pagos de $150.00 el 15 y el 22 de septiembre. Suma validada contra el monto a cubrir. Aprobación automática, dentro del margen autorizado.',
+        meta:'Distribuye pagos sin modificar las condiciones del crédito.'});
+    }
+    if(p>=5){
+      e.push({t:'voz',hora:'09:20',autor:'Asistente virtual',tag:'VOZ',
+        texto:'¿Me autoriza a enviarle el detalle por WhatsApp al número registrado?'});
+      e.push({t:'voz',hora:'09:20',autor:'Carlos Martínez',tag:'VOZ',texto:'Sí, envíemelo.'});
+      e.push({t:'whatsapp',hora:'09:21',autor:'Asistente virtual',tag:'WHATSAPP',
+        texto:'Señor Martínez, le confirmo su plan: $150.00 el 15 de septiembre y $150.00 el 22 de septiembre. Total $300.00. Si necesita ajustarlo, respóndame por aquí.',
+        meta:'Mensaje entregado 09:21. Autorización explícita registrada en el turno de voz previo.'});
+      e.push({t:'whatsapp',hora:'09:26',autor:'Carlos Martínez',tag:'WHATSAPP',texto:'Recibido, gracias.',
+        meta:'Respuesta del cliente: la gestión se cuenta como continuada, no solo como mensaje entregado.'});
+    }
+    if(p>=6){
+      e.push({t:'pago',hora:'15 sep 11:04',autor:'Core bancario',tag:'PAGO',
+        texto:'Pago de $150.00 aplicado al préstamo. Evento recibido del sistema transaccional, independiente de la conversación.',
+        meta:'Fuente distinta del resumen generado por la IA. Cubre el primer pago del acuerdo ACU-1187.'});
+    }
+    if(p>=7){
+      e.push({t:'sistema',hora:'15 sep 11:05',autor:'Panel',tag:'ACTUALIZACIÓN',
+        texto:'Caso actualizado a acuerdo con pago confirmado. Queda pendiente $150.00 para el 22 de septiembre y se programa un recordatorio para el 21 de septiembre.',
+        meta:'El saldo del crédito sigue vigente: el caso está cerrado operativamente, no liquidado.'});
+    }
+    return e;
+  }
+
+  renderVals(){
+    const s = this.state, pr = this.principal(), cart = this.carteraViva();
+    const titles = {
+      inicio:['Panel administrativo','Situación y operación'],
+      cola:['Cobranza preventiva','Cola de atención'],
+      caso:['Cobranza preventiva / Cola de atención','Detalle del caso'],
+      acuerdos:['Cobranza preventiva / Caso CAS-2291','Acuerdo y seguimiento'],
+      resultados:['Análisis','Resultados y patrones'],
+      politicas:['Gobernanza','Políticas, roles y bitácora'],
+      cliente:['Vista previa','Lo que ve el cliente']
+    };
+
+    // ---- nav
+    const requierenHumano = cart.filter(c => c.humano || c.verificar).length + (s.tomado?1:0);
+    const navDefs = [
+      ['inicio','Inicio','','#FFCE1F'],
+      ['cola','Cola de atención',String(cart.length),'#E5A100'],
+      ['caso','Caso · C. Martínez','','#2F9E6B'],
+      ['acuerdos','Acuerdos','','#FFCE1F'],
+      ['resultados','Resultados','','#8E877E'],
+      ['politicas','Políticas y roles',String(requierenHumano),'#C4452B'],
+      ['cliente','Vista del cliente','','#2F9E6B']
+    ];
+    const nav = navDefs.map(([k,label,badge,color]) => {
+      const on = s.screen===k;
+      return { label, badge, go:this.go(k),
+        style:'display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:none;border-radius:8px;cursor:pointer;font:'+(on?'600':'500')+' 12.5px \'Instrument Sans\',sans-serif;background:'+(on?'#3E3C39':'transparent')+';color:'+(on?'#F7F5F1':'#B8B1A7'),
+        dot:'width:7px;height:7px;border-radius:2px;flex:none;display:block;background:'+(on?color:'#5A5751'),
+        badgeStyle: badge ? 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#4A4744;color:#D5CFC6;border-radius:5px;padding:2px 6px' : 'display:none' };
+    });
+    const roles = ['Operador','Supervisor','Analista'].map(r => ({
+      label:r.slice(0,3),
+      go:()=>this.setState({rol:r}),
+      style:'flex:1;font:600 10px \'Instrument Sans\',sans-serif;padding:5px 4px;border-radius:6px;cursor:pointer;border:1px solid '+(s.rol===r?'#FFCE1F':'#4A4744')+';background:'+(s.rol===r?'#FFCE1F':'transparent')+';color:'+(s.rol===r?'#2B2A28':'#A19A8F')
+    }));
+
+    // ---- pasos
+    const pasos = this.pasosDef.map((p,i) => ({
+      label:p.label, go:()=>this.setState({paso:i}),
+      style:'flex:1;height:5px;border-radius:3px;cursor:pointer;display:block;background:'+(i<=s.paso?'#FFCE1F':'#E0DCD5')
+    }));
+
+    // ---- inicio
+    const llamadas = cart.filter(c=>c.llamadaActiva).length;
+    const was = cart.filter(c=>c.waActiva).length;
+    const proximos = cart.filter(c=>c.dias>=0 && c.dias<=5).length;
+    const acuerdosHoy = cart.filter(c=>c.acuerdo).length;
+    const pagosHoy = cart.filter(c=>c.pago);
+    const montoPagos = pagosHoy.reduce((a,c)=>a+(c.montoPago||0),0);
+    const bigVal = 'font-family:\'IBM Plex Mono\',monospace;font-size:25px;font-weight:600;letter-spacing:-.9px';
+    const hoy = [
+      {label:'Llamadas simultáneas activas',value:String(llamadas),unidad:'de 12 de capacidad',note:'Capacidad configurada en la política de operación',valStyle:bigVal},
+      {label:'Conversaciones en WhatsApp',value:String(was),unidad:'activas',note:'Con autorización previa del cliente',valStyle:bigVal},
+      {label:'Clientes próximos a vencer',value:String(proximos),unidad:'en 5 días',note:'Clientes únicos con cuota por vencer',valStyle:bigVal},
+      {label:'Requieren atención humana',value:String(requierenHumano),unidad:'casos',note:'Derivaciones, disputas y pagos por verificar',valStyle:bigVal+';color:#C4452B'},
+      {label:'Acuerdos aceptados',value:String(acuerdosHoy),unidad:'hoy',note:'Aceptación explícita registrada',valStyle:bigVal},
+      {label:'Pagos confirmados',value:String(pagosHoy.length),unidad:this.usd(montoPagos),note:'Confirmados por el core bancario, no por la conversación',valStyle:bigVal+';color:#1F6B4A'},
+      {label:'Cumplimiento de acuerdos vencidos',value:'2 de 3',unidad:'67%',note:'Solo acuerdos cuya fecha de pago ya pasó',valStyle:bigVal}
+    ];
+
+    const a = this.acum;
+    const embudoDefs = [
+      ['Clientes elegibles',a.elegibles,a.elegibles,'#8E877E',''],
+      ['Contactados',a.contactados,a.elegibles,'#E5A100','de elegibles'],
+      ['Conversaciones efectivas',a.efectivas,a.contactados,'#FFCE1F','de contactados'],
+      ['Acuerdos aceptados',a.acuerdos,a.efectivas,'#2F9E6B','de efectivas'],
+      ['Acuerdos con pago confirmado',a.conPago,a.acuerdos,'#1F6B4A','de acuerdos']
+    ];
+    const embudo = embudoDefs.map(([label,v,den,color,suf]) => ({
+      label, detalle: v.toLocaleString('es-SV')+(suf?' · '+this.pct(v,den)+' '+suf:' clientes'),
+      barStyle:'height:100%;width:'+(v/a.elegibles*100)+'%;background:'+color+';border-radius:5px;display:block'
+    }));
+    const acumulado = [
+      {label:'Tasa de contacto',denominador:a.contactados+' de '+a.elegibles+' elegibles',valor:this.pct(a.contactados,a.elegibles)},
+      {label:'Conversaciones efectivas',denominador:a.efectivas+' de '+a.contactados+' contactados',valor:this.pct(a.efectivas,a.contactados)},
+      {label:'Acuerdos aceptados',denominador:a.acuerdos+' de '+a.efectivas+' efectivas',valor:this.pct(a.acuerdos,a.efectivas)},
+      {label:'Acuerdos con pago confirmado',denominador:a.conPago+' de '+a.acuerdos+' acuerdos',valor:this.pct(a.conPago,a.acuerdos)},
+      {label:'Derivaciones a asesor',denominador:'97 de 842 efectivas',valor:'12%'},
+      {label:'Rechazos explícitos respetados',denominador:'64 de 64 rechazos',valor:'100%'}
+    ];
+
+    const canalPill = {'Voz':['#FFF6D6','#7A5E00'],'WhatsApp':['#EAF4EF','#1F6B4A'],'—':['#F7F5F1','#8E877E']};
+    const estadoPill = (e) => {
+      if(/humana|disputa/i.test(e)) return ['#FBE3DC','#A83A22'];
+      if(/verificar/i.test(e)) return ['#FFF6D6','#7A5E00'];
+      if(/confirmado|aceptado/i.test(e)) return ['#EAF4EF','#1F6B4A'];
+      if(/activa|activo/i.test(e)) return ['#FFF8E6','#8A6A00'];
+      return ['#F7F5F1','#6B665E'];
+    };
+    const actividad = cart.filter(c => c.etapa && c.etapa!=='—').slice(0,7).map(c => {
+      const cp = canalPill[c.canal]||canalPill['—'], ep = estadoPill(c.estado||'');
+      return { nombre:c.nombre, id:c.id, canal:c.canal, etapa:c.etapa, duracion:c.duracion,
+        estado:c.estado, siguiente:c.siguiente,
+        canalStyle:this.pill(cp[0],cp[1]), estadoStyle:this.pill(ep[0],ep[1]),
+        abrir: c.principal ? this.go('caso') : this.go('cola') };
+    });
+
+    // ---- cola
+    const prioBanda = (n) => n>=75?['ALTA','#FBE3DC','#A83A22'] : n>=50?['MEDIA','#FDEDE0','#9A4F16'] : n>=25?['BAJA','#FFF6D6','#7A5E00'] : ['MÍNIMA','#EAF4EF','#1F6B4A'];
+    let lista = cart.map(c => ({...c, prioridad: c.principal ? 82 : c.prioridad}));
+    if(s.prio!=='Todas') lista = lista.filter(c => prioBanda(c.prioridad)[0]===s.prio);
+    lista = lista.slice().sort((x,y) => s.orden==='prioridad' ? y.prioridad-x.prioridad : x.dias-y.dias);
+    const cola = lista.map(c => {
+      const b = prioBanda(c.prioridad);
+      return { nombre:c.nombre, producto:c.producto, cuota:this.usd(c.cuota), saldo:'saldo '+this.usd(c.saldo),
+        vence:c.vence, diasTxt: c.dias<0 ? Math.abs(c.dias)+' d atraso' : c.dias+' d',
+        diasStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:'+(c.dias<0?'#A83A22':c.dias<=3?'#9A4F16':'#4C4841'),
+        prioridad:b[0], prioStyle:this.pill(b[1],b[2]), motivos:c.motivos,
+        ultimoContacto:c.ultimo, acuerdoTxt:c.acuerdoTxt||'Sin acuerdo vigente',
+        acuerdoStyle:'display:block;font-size:10.5px;margin-top:2px;color:'+(c.acuerdoTxt?'#1F6B4A':'#9A938A'),
+        nba:c.nba, responsable:c.responsable,
+        abrir: c.principal ? this.go('caso') : this.go('cola') };
+    });
+    const filtrosPrio = ['Todas','ALTA','MEDIA','BAJA','MÍNIMA'].map(p => ({
+      label:p==='Todas'?'Todas las prioridades':p, go:()=>this.setState({prio:p}), style:this.chipBtn(s.prio===p) }));
+    const estadosDemo = [['datos','Con datos'],['cargando','Cargando'],['vacio','Vacío'],['error','Error']].map(([k,label]) => ({
+      label, go:()=>this.setState({cola:k}), style:this.chipBtn(s.cola===k) }));
+    const explicaciones = [
+      {cliente:'Carlos Martínez',origen:'Fecha de vencimiento del ciclo vigente y 2 atrasos registrados en 12 ciclos',fecha:'12 sep 08:00',accion:'Llamada preventiva'},
+      {cliente:'Julio Meléndez',origen:'Dificultad económica declarada por el propio cliente en la llamada del 11 sep',fecha:'11 sep 16:20',accion:'Derivar a asesor'},
+      {cliente:'Delmy Hernández',origen:'El cliente afirma haber pagado; no hay evento del core bancario que lo respalde',fecha:'12 sep 07:55',accion:'Verificar antes de contactar'},
+      {cliente:'Mauricio Portillo',origen:'Cuota vence mañana y no hay contacto registrado en 14 días',fecha:'12 sep 08:00',accion:'Llamada preventiva'}
+    ];
+
+    // ---- timeline
+    const filtroMap = {'Todo':null,'Voz':'voz','WhatsApp':'whatsapp','Acuerdos':'acuerdo','Pagos':'pago'};
+    const filtrosTL = Object.keys(filtroMap).map(f => ({
+      label:f, go:()=>this.setState({filtroTL:f}), style:this.chipBtn(s.filtroTL===f) }));
+    const tipoEstilo = {
+      voz:['#FFF6D6','#7A5E00','#fff','#E0DCD5'], whatsapp:['#EAF4EF','#1F6B4A','#F7FBF9','#D9E9E0'],
+      acuerdo:['#F0F6FF','#1F4E82','#F8FBFF','#D8E6F7'], pago:['#EAF4EF','#1F6B4A','#F1F8F4','#C9E3D6'],
+      sistema:['#F0EEE9','#6B665E','#FBFAF8','#EFEDE8']
+    };
+    const evs = this.eventos().filter(e => !filtroMap[s.filtroTL] || e.t===filtroMap[s.filtroTL]);
+    const timeline = evs.map(e => {
+      const st = tipoEstilo[e.t];
+      const esCliente = e.autor==='Carlos Martínez';
+      return { hora:e.hora, tag:e.tag, autor:e.autor, texto:e.texto, meta:e.meta||'', tieneMeta:!!e.meta,
+        cardStyle:'background:'+st[2]+';border:1px solid '+st[3]+';border-radius:10px;padding:12px 14px'+(esCliente?';border-left:3px solid #2B2A28':''),
+        tagStyle:this.pill(st[0],st[1]),
+        autorStyle:'font-size:10.5px;font-weight:600;color:'+(esCliente?'#2B2A28':'#6B665E'),
+        textoStyle:'font-size:12.5px;line-height:1.55;color:#2B2A28',
+        metaStyle:'font-size:10.5px;line-height:1.5;color:#8E877E;margin-top:7px;padding-top:7px;border-top:1px solid rgba(0,0,0,.06)' };
+    });
+    const resColor = s.paso>=6 ? ['#1F6B4A','#F1F7F3'] : s.paso>=4 ? ['#2B2A28','#F7F5F1'] : ['#EFEDE8','#4C4841'];
+    const resultadoTxt = s.paso>=6 ? 'Acuerdo aceptado · primer pago confirmado' : s.paso>=4 ? 'Acuerdo aceptado · sin pago aún' : s.paso>=1 ? 'Gestión en curso' : 'Contacto no iniciado';
+    const resultadoNota = s.paso>=6 ? 'Caso cerrado operativamente. El crédito conserva un saldo pendiente de $150.00 con fecha 22 de septiembre.' : s.paso>=4 ? 'Un acuerdo aceptado no constituye un pago. El resultado se confirmará con el evento del core bancario.' : s.paso>=1 ? 'Todavía no hay un resultado identificado. La gestión debe cerrarse con uno.' : 'La alerta está generada y el caso aún no ha sido contactado.';
+    const resultadoStyle = 'margin-top:6px;border-radius:12px;padding:16px 18px;background:'+resColor[0]+';color:'+resColor[1];
+
+    // ---- ficha del caso
+    const origenPill = {
+      'Confirmado':['#EAF4EF','#1F6B4A'], 'Declarado por el cliente':['#FFF6D6','#7A5E00'],
+      'Inferido por IA':['#F4EDFB','#5B4670'], 'No disponible':['#F7F5F1','#8E877E']
+    };
+    const mkFicha = (label,valor,origen,ev,ref,corregible) => {
+      const op = origenPill[origen];
+      const abierta = s.evidencia===label;
+      return { label, valor, origen, origenStyle:this.pill(op[0],op[1]),
+        valorStyle:'font-size:13px;font-weight:500;margin-top:5px;line-height:1.45;color:'+(origen==='No disponible'?'#9A938A':'#2B2A28'),
+        tieneEvidencia:!!ev, evidenciaAbierta:abierta, evidenciaTexto:ev||'', evidenciaRef:ref||'',
+        etiquetaEvidencia: abierta ? 'Ocultar fragmento' : 'Ver fragmento de origen',
+        verEvidencia: () => this.setState({evidencia: abierta?null:label}),
+        corregible: !!corregible,
+        corregir: () => this.setState({corregido:true, extra:[...s.extra,{hora:'09:31',texto:'M. Rivas corrigió «Monto que puede pagar» de $150.00 a $160.00',marca:'Corrección registrada',tipo:'humano'}]}) };
+    };
+    const montoDecl = s.corregido ? '$ 160.00' : '$ 150.00';
+    const ficha = [
+      mkFicha('Motivo declarado de dificultad','Desajuste entre la fecha de ingreso y el vencimiento','Declarado por el cliente',
+        '«Este mes se me complicó. Me redujeron las horas y mi pago me entra hasta el 20.»','Llamada 12 sep · 09:15'),
+      mkFicha('Fecha de próximo ingreso', s.paso>=2 ? '20 de septiembre de 2026' : 'No disponible', s.paso>=2?'Declarado por el cliente':'No disponible',
+        s.paso>=2 ? '«…mi pago me entra hasta el 20.»' : '', 'Llamada 12 sep · 09:15'),
+      mkFicha('Monto que manifiesta poder pagar', s.paso>=3 ? montoDecl : 'No disponible', s.paso>=3?'Declarado por el cliente':'No disponible',
+        s.paso>=3 ? '«Podría dar como la mitad en la fecha y el resto después.»' : '', 'Llamada 12 sep · 09:16', s.paso>=3),
+      mkFicha('Preferencia de canal', s.paso>=5 ? 'WhatsApp, autorizado en la llamada' : 'Voz (canal del contacto actual)', s.paso>=5?'Confirmado':'Inferido por IA',
+        s.paso>=5 ? '«¿Me autoriza a enviarle el detalle por WhatsApp?» — «Sí, envíemelo.»' : '', 'Llamada 12 sep · 09:20'),
+      mkFicha('Resultado de la conversación', resultadoTxt, s.paso>=4?'Confirmado':'Inferido por IA', '', ''),
+      mkFicha('Próxima acción, fecha y responsable', pr.siguiente+' · '+(s.tomado?'M. Rivas':'Agente IA'), 'Confirmado', '', '')
+    ];
+    const resumenCaso = s.paso>=4
+      ? 'El cliente explicó que su ingreso llega el 20 y aceptó dividir la cuota en dos pagos dentro del margen autorizado.'
+      : s.paso>=2 ? 'El cliente declaró una reducción temporal de ingresos. Aún no se ha presentado ninguna alternativa.'
+      : 'El caso fue detectado por proximidad del vencimiento. Todavía no hay información declarada por el cliente.';
+
+    const acciones = [
+      {label: s.tomado?'Caso tomado':'Tomar caso', on:s.tomado, go:()=>this.setState({tomado:true, extra:[...s.extra,{hora:'09:34',texto:'M. Rivas tomó el caso; acciones automáticas en pausa',marca:'Humano',tipo:'humano'}]})},
+      {label:'Derivar a asesor', go:()=>this.setState({extra:[...s.extra,{hora:'09:35',texto:'Caso derivado a asesor de reestructura',marca:'Humano',tipo:'humano'}]})},
+      {label:'Registrar seguimiento', go:()=>this.setState({extra:[...s.extra,{hora:'09:36',texto:'Seguimiento programado para el 16 sep 10:00',marca:'Humano',tipo:'humano'}]})},
+      {label:'Revisar propuesta', go:this.go('acuerdos')},
+      {label:'Cancelar recordatorio', go:()=>this.setState({extra:[...s.extra,{hora:'09:37',texto:'Recordatorio del 21 sep cancelado',marca:'Humano',tipo:'humano'}]})}
+    ].map(x => ({...x, style:'font:600 11.5px \'Instrument Sans\',sans-serif;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid '+(x.on?'#2B2A28':'#E0DCD5')+';background:'+(x.on?'#2B2A28':'#fff')+';color:'+(x.on?'#F7F5F1':'#4C4841')}));
+
+    const bitBase = [
+      {hora:'08:02',texto:'Motor de prioridades elevó el caso a atención preventiva',marca:'Regla R-07',tipo:'regla'},
+      {hora:'09:13',texto:'Verificación completada antes de revelar datos de deuda',marca:'Permitido',tipo:'ok'},
+      {hora:'09:17',texto:'Plan de 4 pagos de $75.00 no ofrecido al cliente',marca:'Bloqueado por política',tipo:'bloqueo'},
+      {hora:'09:17',texto:'Plan de 3 pagos de $100.00 marcado como sujeto a aprobación',marca:'Requiere supervisor',tipo:'atencion'},
+      {hora:'09:19',texto:'Acuerdo ACU-1187 aprobado automáticamente',marca:'Dentro del margen',tipo:'ok'}
+    ].slice(0, s.paso>=4?5:s.paso>=3?4:s.paso>=1?2:1);
+    const marcaColor = {regla:['#F0EEE9','#6B665E'],ok:['#EAF4EF','#1F6B4A'],bloqueo:['#FBE3DC','#A83A22'],atencion:['#FFF6D6','#7A5E00'],humano:['#F0F6FF','#1F4E82']};
+    const bitacora = [...bitBase, ...s.extra].map(b => {
+      const c = marcaColor[b.tipo]||marcaColor.regla;
+      return {...b, marcaStyle:'font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:4px;background:'+c[0]+';color:'+c[1]+';white-space:nowrap'};
+    });
+
+    // ---- acuerdos
+    const planesDef = [
+      {k:'2x150',titulo:'2 pagos de $150.00',cuotas:[['15 sep','$ 150.00'],['22 sep','$ 150.00']],
+       estado:'Permitida',ep:['#EAF4EF','#1F6B4A'],regla:'Extensión de 7 días sobre el vencimiento. Dentro del margen autorizado: distribuye pagos sin modificar las condiciones del crédito.'},
+      {k:'3x100',titulo:'3 pagos de $100.00',cuotas:[['15 sep','$ 100.00'],['22 sep','$ 100.00'],['29 sep','$ 100.00']],
+       estado:'Requiere aprobación',ep:['#FFF6D6','#7A5E00'],regla:'Extensión de 14 días. Supera el margen de 7 días, por lo que modifica condiciones y necesita aprobación de supervisor.'},
+      {k:'4x75',titulo:'4 pagos de $75.00',cuotas:[['15 sep','$ 75.00'],['22 sep','$ 75.00'],['29 sep','$ 75.00'],['06 oct','$ 75.00']],
+       estado:'Bloqueada',ep:['#FBE3DC','#A83A22'],regla:'Extensión de 21 días. La política vigente no autoriza esta opción, por lo que no se ofrece al cliente.'}
+    ];
+    const planes = planesDef.map(p => {
+      const sel = s.plan===p.k, bloq = p.k==='4x75';
+      return { titulo:p.titulo, estado:p.estado, estadoStyle:this.pill(p.ep[0],p.ep[1]),
+        cuotas:p.cuotas.map(([fecha,monto])=>({fecha,monto})), regla:p.regla,
+        go: bloq ? (()=>{}) : (()=>this.setState({plan:p.k})),
+        cardStyle:'border-radius:11px;padding:15px 16px;cursor:'+(bloq?'not-allowed':'pointer')+';border:1px solid '+(sel?'#2B2A28':'#E7E4DE')+';background:'+(bloq?'#FBFAF8':'#fff')+';opacity:'+(bloq?'.62':'1')+';box-shadow:'+(sel?'0 0 0 2px rgba(43,42,40,.12)':'none') };
+    });
+    const planSel = planesDef.find(p=>p.k===s.plan);
+    const suma = planSel.cuotas.reduce((t,[,m])=>t+parseFloat(m.replace(/[^0-9.]/g,'')),0);
+    const validaciones = [
+      {ok:suma===300, texto:'Suma de pagos '+this.usd(suma)+' = monto a cubrir $ 300.00'},
+      {ok:s.plan==='2x150', texto: s.plan==='2x150' ? 'Fechas dentro del margen de 7 días' : 'Fechas fuera del margen de 7 días: requiere aprobación'},
+      {ok:true, texto:'Sin cargos adicionales aplicados'},
+      {ok:true, texto:'Un abono parcial no elimina la mora del ciclo'}
+    ].map(v => ({ texto:v.texto, style:'font-size:11px;font-weight:500;padding:6px 11px;border-radius:7px;background:'+(v.ok?'#EAF4EF':'#FFF6D6')+';color:'+(v.ok?'#1F6B4A':'#7A5E00')+';border:1px solid '+(v.ok?'#D9E9E0':'#F2DFA8') }));
+
+    const mono = 'font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:500;margin-top:3px';
+    const acuerdoDatos = [
+      {label:'Monto cubierto',valor:'$ 300.00',valStyle:mono},
+      {label:'Número de pagos',valor:String(planSel.cuotas.length),valStyle:mono},
+      {label:'Fechas',valor:planSel.cuotas.map(c=>c[0]).join(' · '),valStyle:mono},
+      {label:'Total y cargos',valor:'$ 300.00 · sin cargos',valStyle:mono},
+      {label:'Estado de aprobación',valor: s.paso>=4 ? (s.plan==='2x150'?'Aprobado automáticamente':'Propuesta pendiente de supervisor') : 'Propuesta sin aceptar',
+       valStyle:mono+';color:'+(s.paso>=4 && s.plan==='2x150'?'#1F6B4A':'#9A4F16')},
+      {label:'Identificador',valor: s.paso>=4 ? 'ACU-1187' : '—',valStyle:mono}
+    ];
+    const evidenciaAcuerdo = s.paso>=4
+      ? 'Aceptación explícita en la llamada del 12 sep, turno de las 09:19: «Sí, acepto esas dos fechas.» Confirmación enviada y respondida por WhatsApp a las 09:26.'
+      : 'Todavía no hay evidencia de aceptación. La propuesta está presentada pero no confirmada por el cliente.';
+    const pagosPlan = planSel.cuotas.map(([fecha,monto],i) => {
+      const pagado = i===0 && s.paso>=6;
+      return { titulo:'Pago '+(i+1)+' · '+fecha, monto,
+        nota: pagado ? 'Confirmado por el core bancario el 15 sep 11:04' : 'Programado · pendiente de confirmación',
+        estado: pagado ? 'Confirmado' : 'Pendiente',
+        estadoStyle: pagado ? this.pill('#EAF4EF','#1F6B4A') : this.pill('#F7F5F1','#6B665E') };
+    });
+    const pendientePlan = this.usd(300 - (s.paso>=6?150:0));
+    const graciaStyle = 'border-radius:12px;padding:18px 20px;border:1px solid '+(s.gracia?'#D8E6F7':'#F2DFA8')+';background:'+(s.gracia?'#F0F6FF':'#FFF8E6');
+    const graciaBtn = 'font:600 11.5px \'Instrument Sans\',sans-serif;padding:9px 14px;border-radius:8px;cursor:pointer;border:1px solid '+(s.gracia?'#2B6CB0':'#E0DCD5')+';background:'+(s.gracia?'#2B6CB0':'#fff')+';color:'+(s.gracia?'#fff':'#4C4841');
+
+    // ---- resultados
+    const motivosDef = [
+      ['Olvido de la fecha',214],['Desajuste ingreso / vencimiento',186],['Ingresos variables',131],
+      ['Gasto imprevisto',104],['Dificultad económica',88],['Desacuerdo con el monto',71],['Problema del canal de pago',48]
+    ];
+    const maxM = 214;
+    const motivos = motivosDef.map(([label,n]) => ({ label, valor:n+' · '+this.pct(n,842),
+      barStyle:'height:100%;width:'+(n/maxM*100)+'%;background:#E5A100;border-radius:5px;display:block' }));
+
+    const waDef = [['Ofrecido',702],['Autorizado',548],['Mensaje entregado',531],['Cliente respondió',344],['Gestión continuada',268],['Resultado registrado',241]];
+    const waFunnel = waDef.map(([label,n],i) => ({ label,
+      detalle: n+(i>0?' · '+this.pct(n,waDef[i-1][1])+' del paso anterior':' conversaciones'),
+      barStyle:'height:100%;width:'+(n/702*100)+'%;background:#2F9E6B;border-radius:4px;display:block' }));
+
+    const contactabilidad = [
+      {canal:'Llamada de voz',mejorHorario:'Mejor franja: 09:00–11:00',tasa:'62%'},
+      {canal:'WhatsApp',mejorHorario:'Mejor franja: 17:00–19:00',tasa:'49%'},
+      {canal:'SMS',mejorHorario:'Sin diferencia clara por franja',tasa:'23%'},
+      {canal:'Correo',mejorHorario:'Muestra insuficiente por franja',tasa:'11%'}
+    ];
+    const alternativas = [
+      {label:'2 pagos dentro del ciclo',ofrecidas:'n = 214',cumplimiento:'78% cumplido',ok:true},
+      {label:'3 pagos con extensión',ofrecidas:'n = 138',cumplimiento:'64% cumplido',ok:true},
+      {label:'Recordatorio sin plan',ofrecidas:'n = 402',cumplimiento:'71% cumplido',ok:true},
+      {label:'Reestructura con asesor',ofrecidas:'n = 31',cumplimiento:'Muestra insuficiente',ok:false}
+    ].map(x => ({...x, cumpleStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;font-weight:600;color:'+(x.ok?'#1F6B4A':'#9A4F16')}));
+
+    const hallazgos = [
+      {tipo:'Asociación',tp:['#FFF6D6','#7A5E00'],periodo:'13 ago – 12 sep',
+       titulo:'Las conversaciones que preguntan por la fecha de ingreso terminan más veces en acuerdo',
+       detalle:'68% de acuerdos cuando el agente pregunta por la fecha de ingreso, frente a 41% cuando no lo hace.',
+       muestra:'n = 842 conversaciones efectivas',evidencia:'842 transcripciones etiquetadas',
+       limitacion:'No es una relación causal. El agente pregunta más cuando el cliente ya mostró apertura. Evaluar asignando la pregunta al azar en dos grupos comparables.'},
+      {tipo:'Observación',tp:['#EAF4EF','#1F6B4A'],periodo:'13 ago – 12 sep',
+       titulo:'La continuidad en WhatsApp se pierde entre el mensaje entregado y la respuesta',
+       detalle:'De 531 mensajes entregados, 344 obtuvieron respuesta. La caída se concentra en envíos posteriores a las 19:00.',
+       muestra:'n = 531 mensajes entregados',evidencia:'Eventos de entrega y respuesta del proveedor',
+       limitacion:'El horario de envío no se asigna al azar; depende de cuándo terminó la llamada.'},
+      {tipo:'Datos insuficientes',tp:['#F7F5F1','#6B665E'],periodo:'13 ago – 12 sep',
+       titulo:'Efecto de la reestructura con asesor sobre el cumplimiento posterior',
+       detalle:'Solo 31 casos derivados completaron el ciclo. No se reporta una tasa con esta muestra.',
+       muestra:'n = 31 casos',evidencia:'Registro de derivaciones',
+       limitacion:'Se requieren al menos 3 meses de acumulación y un grupo de comparación antes de publicar una cifra.'}
+    ].map(h => ({...h, tipoStyle:this.pill(h.tp[0],h.tp[1]),
+      cardStyle:'background:#fff;border:1px solid #E7E4DE;border-radius:12px;padding:17px 18px'}));
+
+    const cicloMejora = [
+      ['01','Hallazgo','Señal observada con su muestra y limitación'],
+      ['02','Propuesta','Cambio redactado de guion o de regla'],
+      ['03','Revisión humana','Cumplimiento y negocio aprueban o rechazan'],
+      ['04','Prueba','Grupos comparables durante un periodo definido'],
+      ['05','Evaluación','Resultado medido antes de adoptar el cambio']
+    ].map(([num,titulo,nota],i) => ({ num, titulo, nota,
+      style:'border-radius:10px;padding:13px 14px;background:'+(i===2?'#2B2A28':'#FBFAF8')+';color:'+(i===2?'#F7F5F1':'#2B2A28')+';border:1px solid '+(i===2?'#2B2A28':'#EFEDE8') }));
+
+    // ---- políticas
+    const politicas = [
+      {num:'01',titulo:'Ventana de contacto',reglas:[
+        {label:'Horario permitido',nota:'Hora local del cliente, de lunes a sábado.',valor:'08:00 – 19:00'},
+        {label:'Domingos y feriados',nota:'No se realiza ningún contacto saliente.',valor:'Sin contacto'},
+        {label:'Intervalo mínimo entre contactos',nota:'Aplica a todos los canales combinados.',valor:'48 horas'}
+      ]},
+      {num:'02',titulo:'Frecuencia de contacto',reglas:[
+        {label:'Máximo de contactos por semana',nota:'Por cliente, sumando voz, WhatsApp y SMS.',valor:'3'},
+        {label:'Reintento tras negativa explícita',nota:'Una negativa cierra el ciclo de contacto vigente.',valor:'No permitido'},
+        {label:'Contactos durante atención humana',nota:'El agente no actúa mientras el caso está tomado.',valor:'Suspendidos'}
+      ]},
+      {num:'03',titulo:'Alternativas disponibles',reglas:[
+        {label:'Extensión máxima sin aprobación',nota:'Sobre la fecha de vencimiento vigente.',valor:'7 días'},
+        {label:'Monto mínimo de pago parcial',nota:'O el 20% de la cuota, el que resulte mayor.',valor:'$ 75.00'},
+        {label:'Reestructuras y condonaciones',nota:'Modifican condiciones del crédito.',valor:'Requieren aprobación'},
+        {label:'Tres días de gracia automáticos',nota:'Propuesta en evaluación, sin política aprobada.',valor: s.gracia?'Activada (demo)':'Desactivada'}
+      ]},
+      {num:'04',titulo:'Derivación humana obligatoria',reglas:[
+        {label:'Solicitud explícita de atención humana',nota:'El agente transfiere sin repreguntar.',valor:'Inmediata'},
+        {label:'Indicio de dificultad económica sostenida',nota:'Pérdida de empleo, enfermedad o evento familiar.',valor:'Inmediata'},
+        {label:'Monto en disputa',nota:'El cliente desconoce el saldo o afirma haber pagado.',valor:'Inmediata'},
+        {label:'Molestia sostenida',nota:'Dos turnos consecutivos con señal negativa.',valor:'Inmediata'}
+      ]},
+      {num:'05',titulo:'Conservación de registros',reglas:[
+        {label:'Transcripciones y consentimientos',nota:'Con acceso restringido por rol.',valor:'24 meses'},
+        {label:'Grabaciones de voz',nota:'Solo con consentimiento registrado.',valor:'12 meses'},
+        {label:'Uso para entrenar modelos',nota:'Fuera del alcance de este prototipo.',valor:'No autorizado'}
+      ]}
+    ];
+    const rolesTabla = [
+      {nombre:'Operador',puede:'Atiende la cola, toma casos, registra seguimientos y deriva a un asesor.',ve:'Nombre, producto, cuota, saldo y motivo declarado.'},
+      {nombre:'Supervisor',puede:'Aprueba planes fuera del margen, reasigna casos y revisa la bitácora.',ve:'Lo del operador más aprobaciones y desempeño del equipo.'},
+      {nombre:'Analista',puede:'Consulta resultados y patrones; propone cambios de guion para revisión.',ve:'Solo datos agregados. Sin identificadores de cliente.'}
+    ].map(r => ({...r, nombreStyle:'font-size:12.5px;font-weight:600;color:'+(s.rol===r.nombre?'#2B2A28':'#6B665E')}));
+    const bitacoraGlobal = [
+      {hora:'09:17',propuesta:'Ofrecer 4 pagos de $75.00 a CLI-04821',regla:'Excede extensión máxima',quien:'Sistema',t:'bloqueo'},
+      {hora:'09:17',propuesta:'Ofrecer 3 pagos de $100.00 a CLI-04821',regla:'Requiere supervisor',quien:'Sistema',t:'atencion'},
+      {hora:'09:19',propuesta:'Registrar acuerdo de 2 pagos de $150.00',regla:'Dentro del margen',quien:'Sistema',t:'ok'},
+      {hora:'08:41',propuesta:'Contactar a CLI-02190 por segunda vez hoy',regla:'Intervalo mínimo de 48 h',quien:'Sistema',t:'bloqueo'},
+      {hora:'07:58',propuesta:'Contactar a CLI-09120 por saldo pendiente',regla:'Pago por verificar',quien:'Operaciones',t:'atencion'}
+    ].map(b => { const c = marcaColor[b.t]; return {...b,
+      reglaStyle:'font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:'+c[0]+';color:'+c[1]+';display:inline-block'}; });
+
+    // ---- vista cliente
+    const pagados = s.paso>=6?1:0;
+    const calendario = [
+      {mes:'SEP',dia:'15',estado: pagados>=1?'Pagado':'Programado', ok:pagados>=1},
+      {mes:'SEP',dia:'22',estado:'Próximo pago', ok:false}
+    ].map(d => ({...d, style:'flex:1;border-radius:10px;padding:10px 11px;text-align:center;border:1px solid '+(d.ok?'#D9E9E0':'#E7E4DE')+';background:'+(d.ok?'#EAF4EF':'#FBFAF8')+';color:'+(d.ok?'#1F6B4A':'#4C4841')}));
+    const separacion = [
+      {que:'Progreso del plan',donde:'Visible para el cliente en la banca móvil. Muestra cuánto ha cubierto de su acuerdo.'},
+      {que:'Prioridad de atención',donde:'Solo interna. Ordena el trabajo del equipo y nunca se comunica al cliente.'},
+      {que:'Historial y calificación crediticia',donde:'Sistema aparte, con sus propias reglas. Este prototipo no lo modifica ni lo estima.'}
+    ];
+
+    return {
+      entidad: this.props.entidad ?? 'Banco del Valle',
+      crumb:titles[s.screen][0], title:titles[s.screen][1], nav, roles, rolActual:s.rol,
+      pasos, pasoNum:this.pasosDef[s.paso].n, pasoLabel:this.pasosDef[s.paso].label,
+      etiquetaAvanzar: s.paso>=7 ? 'Demostración completa' : 'Avanzar',
+      avanzar: () => this.setState({paso: Math.min(7, s.paso+1)}),
+      reiniciar: () => this.setState({paso:0, tomado:false, corregido:false, extra:[], evidencia:null, plan:'2x150'}),
+      esInicio:s.screen==='inicio', esCola:s.screen==='cola', esCaso:s.screen==='caso',
+      esAcuerdos:s.screen==='acuerdos', esResultados:s.screen==='resultados',
+      esPoliticas:s.screen==='politicas', esCliente:s.screen==='cliente',
+      hoy, embudo, acumulado, actividad, conteoActividad: actividad.length+' casos con actividad hoy',
+      cola, filtrosPrio, estadosDemo, explicaciones, skeleton:[0,1,2,3,4],
+      colaDatos:s.cola==='datos', colaCargando:s.cola==='cargando', colaVacia:s.cola==='vacio'||(s.cola==='datos'&&cola.length===0), colaError:s.cola==='error',
+      resumenCola: cola.length+' clientes · prioridad por reglas simuladas',
+      ordenLabel: s.orden==='prioridad'?'prioridad':'días al vencimiento',
+      toggleOrden: () => this.setState({orden: s.orden==='prioridad'?'dias':'prioridad'}),
+      limpiarFiltros: () => this.setState({prio:'Todas', cola:'datos'}),
+      filtrosTL, timeline, timelineVacia: timeline.length===0,
+      resultadoStyle, resultadoTxt, resultadoNota,
+      estadoCaso:pr.estado, estadoCasoStyle:this.pill(...estadoPill(pr.estado)),
+      tomado:s.tomado, soltarCaso: () => this.setState({tomado:false, extra:[...s.extra,{hora:'09:40',texto:'Caso devuelto al agente; acciones automáticas reanudadas',marca:'Humano',tipo:'humano'}]}),
+      ficha, resumenCaso, acciones, bitacora,
+      planes, validaciones, acuerdoDatos, evidenciaAcuerdo, pagosPlan, pendientePlan,
+      graciaStyle, graciaBtn, graciaLabel: s.gracia?'Desactivar propuesta':'Activar solo en demostración',
+      toggleGracia: () => this.setState({gracia:!s.gracia}),
+      motivos, waFunnel, contactabilidad, alternativas, hallazgos, cicloMejora,
+      politicas, rolesTabla, bitacoraGlobal,
+      planEstadoCliente: pagados>=1?'Al día':'Próximo pago',
+      planProgreso: pagados+' de 2', planPendiente:this.usd(300-pagados*150),
+      planBar:'height:100%;width:'+(pagados/2*100)+'%;background:#2F9E6B;border-radius:5px;display:block',
+      proxMonto:'$ 150.00', proxFecha: pagados>=1?'22 de septiembre':'15 de septiembre',
+      calendario,
+      mensajeCliente: pagados>=1 ? 'Gracias, recibimos su pago del 15 de septiembre. Le avisaremos un día antes del siguiente.' : 'Su plan está registrado. Le enviaremos un recordatorio un día antes de cada pago.',
+      separacion
+    };
+  }
+}
+</script>
+</body>
+</html>

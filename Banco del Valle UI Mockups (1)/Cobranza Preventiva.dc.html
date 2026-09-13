@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F2F2;font-family:'Instrument Sans',system-ui,sans-serif;color:#1A1A1A;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#1A1A1A}a:hover{color:#8B4FBF}
+@keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-360px 0}100%{background-position:360px 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D6D6D6;border-radius:8px;border:3px solid #F2F2F2}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;min-height:640px;background:#F2F2F2;overflow:hidden">
+
+  <!-- SIDEBAR -->
+  <aside style="width:240px;flex:none;background:#1A1A1A;color:#fff;display:flex;flex-direction:column;padding:22px 0 16px">
+    <div style="display:flex;align-items:center;gap:11px;padding:0 20px 20px">
+      <div style="width:26px;height:26px;display:flex;flex-direction:column;justify-content:center;gap:4px;flex:none">
+        <div style="height:4px;width:20px;background:#FFD100;border-radius:2px;transform:skewY(-8deg)"></div>
+        <div style="height:4px;width:26px;background:#fff;border-radius:2px;transform:skewY(-8deg)"></div>
+        <div style="height:4px;width:23px;margin-left:3px;background:#8B4FBF;border-radius:2px;transform:skewY(-8deg)"></div>
+      </div>
+      <div style="min-width:0">
+        <div style="font-size:14px;font-weight:700;letter-spacing:-.3px;line-height:1.15">{{ entidad }}</div>
+        <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#9B9B9B;margin-top:2px">Cobranza preventiva</div>
+      </div>
+    </div>
+
+    <div style="padding:0 20px 10px">
+      <div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#7A7A7A;font-weight:700;margin-bottom:7px">Perfil de cartera</div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <sc-for list="{{ perfiles }}" as="p" hint-placeholder-count="4">
+          <button onClick="{{ p.go }}" style="{{ p.style }}">
+            <span style="{{ p.dot }}"></span>
+            <span style="flex:1;text-align:left">{{ p.label }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9B9B9B">{{ p.conteo }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:12px 12px 0;margin:8px 8px 0;border-top:1px solid #333;flex:1">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="6">
+        <button onClick="{{ item.go }}" style="{{ item.style }}">
+          <span style="{{ item.dot }}"></span>
+          <span style="flex:1;text-align:left">{{ item.label }}</span>
+          <span style="{{ item.badgeStyle }}">{{ item.badge }}</span>
+        </button>
+      </sc-for>
+    </nav>
+
+    <div style="padding:13px 20px 0;margin:12px 12px 0;border-top:1px solid #333">
+      <div style="display:flex;align-items:center;gap:9px;font-size:11px;color:#9B9B9B">
+        <span style="width:26px;height:26px;border-radius:50%;background:#FFD100;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#1A1A1A;flex:none">MR</span>
+        <span style="line-height:1.35">Mariela Rivas<br><span style="color:#6E6E6E">Operadora sénior</span></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main style="flex:1;min-width:0;overflow-y:auto;display:flex;flex-direction:column">
+
+    <header style="position:sticky;top:0;z-index:10;background:rgba(242,242,242,.94);backdrop-filter:blur(8px);border-bottom:1px solid #E3E3E3;padding:15px 30px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A8A;font-weight:700">{{ crumb }}</div>
+        <h1 style="margin:3px 0 0;font-size:21px;font-weight:700;letter-spacing:-.5px">{{ title }}</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #E3E3E3;border-radius:999px;padding:6px 13px 6px 10px">
+        <span style="{{ perfilDotStyle }}"></span>
+        <span style="font-size:11px;font-weight:600">{{ perfilActivo }}</span>
+      </div>
+      <sc-if value="{{ live }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #E3E3E3;border-radius:999px;padding:6px 13px 6px 10px">
+          <span style="width:7px;height:7px;border-radius:50%;background:#3FAE49;animation:pulse 1.8s ease-in-out infinite"></span>
+          <span style="font-size:11px;font-weight:600;color:#4A4A4A">En vivo</span>
+        </div>
+      </sc-if>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8A8A8A">12 sep 2026 · 09:41</div>
+    </header>
+
+    <div style="padding:24px 30px 56px;max-width:1420px;width:100%">
+
+      <!-- ============ 1. INICIO ============ -->
+      <sc-if value="{{ esInicio }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <section style="background:#fff;border:1px solid #E3E3E3;border-radius:14px;padding:0;overflow:hidden;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))">
+            <div style="padding:28px 30px">
+              <div style="display:inline-flex;align-items:center;gap:7px;background:#FFD100;border-radius:999px;padding:5px 12px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700">Métrica principal</div>
+              <h2 style="margin:14px 0 8px;font-size:33px;line-height:1.08;font-weight:700;letter-spacing:-1.1px">Mora evitada</h2>
+              <p style="margin:0;font-size:13px;line-height:1.6;color:#6B6B6B;max-width:44ch">Clientes con intervención preventiva del agente frente a una cohorte de control que nunca fue contactada. Ventana de 90 días, ciclo agosto 2026. Datos de ejemplo.</p>
+              <div style="display:flex;gap:26px;margin-top:22px">
+                <div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;letter-spacing:-1px;color:#3FAE49">−61.7%</div>
+                  <div style="font-size:11px;color:#8A8A8A;margin-top:2px">Reducción relativa de mora</div>
+                </div>
+                <div style="border-left:1px solid #E3E3E3;padding-left:26px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;letter-spacing:-1px">1,284</div>
+                  <div style="font-size:11px;color:#8A8A8A;margin-top:2px">Clientes intervenidos</div>
+                </div>
+              </div>
+            </div>
+            <div style="background:#F7F7F7;border-left:1px solid #E3E3E3;padding:24px 26px 18px">
+              <div style="display:flex;align-items:flex-end;justify-content:center;gap:44px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;width:94px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;color:#3FAE49">18%</div>
+                  <div style="width:100%;height:172px;display:flex;align-items:flex-end">
+                    <div style="width:100%;height:66px;background:#3FAE49;border-radius:5px 5px 0 0"></div>
+                  </div>
+                  <div style="font-size:11px;color:#4A4A4A;text-align:center;line-height:1.35">Intervenidos<br><span style="color:#9B9B9B;font-family:'IBM Plex Mono',monospace;font-size:10px">n = 1,284</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;width:94px">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;color:#F5842A">47%</div>
+                  <div style="width:100%;height:172px;display:flex;align-items:flex-end">
+                    <div style="width:100%;height:172px;background:#F5842A;border-radius:5px 5px 0 0"></div>
+                  </div>
+                  <div style="font-size:11px;color:#4A4A4A;text-align:center;line-height:1.35">Control<br><span style="color:#9B9B9B;font-family:'IBM Plex Mono',monospace;font-size:10px">n = 612</span></div>
+                </div>
+              </div>
+              <div style="border-top:1px solid #E3E3E3;margin-top:14px;padding-top:11px;font-size:11px;color:#8A8A8A;text-align:center">Tasa de entrada en mora ≥ 30 días</div>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:13px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="9">
+              <div style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:15px 16px 14px;display:flex;flex-direction:column;gap:8px;min-height:116px">
+                <div style="font-size:11px;font-weight:600;color:#6B6B6B;line-height:1.35">{{ k.label }}</div>
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;letter-spacing:-.9px">{{ k.value }}</span>
+                  <span style="{{ k.deltaStyle }}">{{ k.delta }}</span>
+                </div>
+                <div style="height:4px;border-radius:3px;background:#EDEDED;overflow:hidden;margin-top:auto">
+                  <div style="{{ k.barStyle }}"></div>
+                </div>
+                <div style="font-size:10.5px;color:#8A8A8A">{{ k.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:13px">
+            <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:700">Efectividad por canal</h3>
+                <span style="font-size:10.5px;color:#8A8A8A">Compromisos / contactos</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ canales }}" as="c" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:104px 1fr 48px;align-items:center;gap:12px">
+                    <span style="font-size:12px;font-weight:500">{{ c.nombre }}</span>
+                    <span style="height:9px;border-radius:5px;background:#EDEDED;overflow:hidden;display:block"><span style="{{ c.barStyle }}"></span></span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;color:#4A4A4A">{{ c.valor }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+
+            <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <h3 style="margin:0;font-size:13.5px;font-weight:700">Gobernanza del agente</h3>
+                <span style="width:7px;height:7px;border-radius:50%;background:#3FAE49;animation:pulse 1.8s ease-in-out infinite"></span>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ gobernanza }}" as="g" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #F0F0F0">
+                    <span style="font-size:12px;color:#4A4A4A">{{ g.label }}</span>
+                    <span style="{{ g.valStyle }}">{{ g.valor }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ 2. COLA DE RIESGO — TICKETS ============ -->
+      <sc-if value="{{ esTickets }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ filtrosEstado }}" as="f" hint-placeholder-count="5">
+                <button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }} <span style="{{ f.countStyle }}">{{ f.conteo }}</span></button>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ filtrosCanal }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;border-left:1px solid #DEDEDE;padding-left:10px">
+              <sc-for list="{{ estadosDemo }}" as="e" hint-placeholder-count="3">
+                <button onClick="{{ e.go }}" style="{{ e.style }}">{{ e.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ colaCargando }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:13px">
+              <sc-for list="{{ skeleton }}" as="s" hint-placeholder-count="6">
+                <div style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:17px 18px;display:flex;flex-direction:column;gap:11px">
+                  <span style="height:10px;width:38%;border-radius:4px;background:linear-gradient(90deg,#EDEDED 0%,#E0E0E0 50%,#EDEDED 100%);background-size:360px 100%;animation:shimmer 1.4s linear infinite;display:block"></span>
+                  <span style="height:14px;width:62%;border-radius:4px;background:#EDEDED;display:block"></span>
+                  <span style="height:10px;width:88%;border-radius:4px;background:#F2F2F2;display:block"></span>
+                  <span style="height:34px;border-radius:8px;background:linear-gradient(90deg,#F4F4F4 0%,#E8E8E8 50%,#F4F4F4 100%);background-size:360px 100%;animation:shimmer 1.4s linear infinite;display:block"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:9px;padding:8px 0;font-size:11.5px;color:#8A8A8A">
+              <span style="width:13px;height:13px;border-radius:50%;border:2px solid #E0E0E0;border-top-color:#FFD100;animation:spin .8s linear infinite;display:block"></span>
+              Sincronizando tickets con el motor de riesgo…
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ colaVacia }}" hint-placeholder-val="{{ false }}">
+            <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:70px 24px;text-align:center">
+              <div style="width:46px;height:46px;border-radius:12px;background:#F1F8F2;border:1px solid #D6E9D8;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
+                <span style="width:14px;height:14px;border-radius:50%;background:#3FAE49;display:block"></span>
+              </div>
+              <div style="font-size:14.5px;font-weight:700">Sin tickets abiertos con estos filtros</div>
+              <p style="margin:7px auto 0;max-width:46ch;font-size:12.5px;line-height:1.55;color:#8A8A8A">Ningún cliente del perfil {{ perfilActivo }} supera el umbral preventivo para la combinación seleccionada. La cola se actualiza en vivo conforme el motor recalcula los scores.</p>
+              <button onClick="{{ limpiarFiltros }}" style="margin-top:16px;font:700 12px 'Instrument Sans',sans-serif;background:#FFD100;color:#1A1A1A;border:none;border-radius:999px;padding:10px 18px;cursor:pointer">Limpiar filtros</button>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ colaDatos }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:13px">
+              <sc-for list="{{ tickets }}" as="t" hint-placeholder-count="6">
+                <div onClick="{{ t.abrir }}" style="{{ t.cardStyle }}" style-hover="border-color:#1A1A1A">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8A8A8A">{{ t.id }}</span>
+                    <span style="{{ t.estadoStyle }}">{{ t.estado }}</span>
+                    <div style="flex:1"></div>
+                    <span style="{{ t.prioStyle }}">{{ t.prioridad }}</span>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                    <span style="{{ t.avatarStyle }}">{{ t.iniciales }}</span>
+                    <span style="min-width:0;flex:1">
+                      <span style="display:block;font-size:14px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.cliente }}</span>
+                      <span style="display:block;font-size:11px;color:#8A8A8A;margin-top:1px">{{ t.producto }} · {{ t.segmento }}</span>
+                    </span>
+                    <span style="text-align:right;flex:none">
+                      <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600">{{ t.saldo }}</span>
+                      <span style="{{ t.bandaStyle }}">{{ t.banda }} · {{ t.score }}</span>
+                    </span>
+                  </div>
+
+                  <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+                    <sc-for list="{{ t.canales }}" as="c" hint-placeholder-count="2">
+                      <span style="{{ c.style }}">{{ c.label }}</span>
+                    </sc-for>
+                  </div>
+
+                  <div style="{{ t.eventoStyle }}">
+                    <span style="{{ t.eventoDot }}"></span>
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:11.5px;line-height:1.45;color:#4A4A4A">{{ t.ultimoEvento }}</span>
+                      <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9B9B9B;margin-top:3px">{{ t.hace }}</span>
+                    </span>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:12px;padding-top:11px;border-top:1px solid #F0F0F0">
+                    <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#9B9B9B">SLA</span>
+                    <span style="flex:1;height:5px;border-radius:3px;background:#EDEDED;overflow:hidden;display:block"><span style="{{ t.slaBar }}"></span></span>
+                    <span style="{{ t.slaTextStyle }}">{{ t.sla }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ 3. TICKET — CONVERSACIÓN UNIFICADA ============ -->
+      <sc-if value="{{ esTicket }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:17px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <button onClick="{{ volverTickets }}" style="font:600 11.5px 'Instrument Sans',sans-serif;background:#F2F2F2;border:1px solid #E3E3E3;border-radius:8px;padding:7px 12px;cursor:pointer;color:#4A4A4A;flex:none">← Tickets</button>
+            <span style="{{ tk.avatarStyle }}">{{ tk.iniciales }}</span>
+            <div style="min-width:170px">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:16px;font-weight:700;letter-spacing:-.3px">{{ tk.cliente }}</span>
+                <span style="{{ tk.estadoStyle }}">{{ tk.estado }}</span>
+              </div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8A8A8A;margin-top:3px">{{ tk.id }} · {{ tk.clienteId }} · {{ tk.segmento }}</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9B9B9B;font-weight:700">Score</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;letter-spacing:-.8px">{{ tk.score }}</span>
+                  <span style="{{ tk.bandaStyle }}">{{ tk.banda }}</span>
+                </div>
+              </div>
+              <button onClick="{{ verCliente }}" style="font:700 12px 'Instrument Sans',sans-serif;background:#fff;color:#1A1A1A;border:1.5px solid #1A1A1A;border-radius:999px;padding:9px 16px;cursor:pointer">Ficha del cliente</button>
+              <button style="font:700 12px 'Instrument Sans',sans-serif;background:#FFD100;color:#1A1A1A;border:none;border-radius:999px;padding:10px 17px;cursor:pointer">Tomar el ticket</button>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;align-items:start">
+
+            <!-- CHAT UNIFICADO -->
+            <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid #EDEDED;flex-wrap:wrap">
+                <span style="font-size:12.5px;font-weight:700">Conversación del ticket</span>
+                <span style="font-size:11px;color:#8A8A8A">Voz transcrita y WhatsApp en una sola línea de tiempo</span>
+                <div style="flex:1"></div>
+                <div style="display:flex;gap:5px">
+                  <sc-for list="{{ filtrosHilo }}" as="f" hint-placeholder-count="4">
+                    <button onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="padding:20px 20px 18px;display:flex;flex-direction:column;gap:15px;background:#FAFAFA">
+                <sc-for list="{{ hilo }}" as="t" hint-placeholder-count="8">
+                  <div style="{{ t.wrapStyle }}">
+
+                    <sc-if value="{{ t.esSistema }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:10px;width:100%">
+                        <span style="flex:1;height:1px;background:#E3E3E3;display:block"></span>
+                        <span style="font-size:10.5px;font-weight:600;color:#9B9B9B;white-space:nowrap">{{ t.texto }}</span>
+                        <span style="flex:1;height:1px;background:#E3E3E3;display:block"></span>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ t.esGuardrail }}" hint-placeholder-val="{{ false }}">
+                      <div style="width:100%;background:#FFF9DB;border:1px solid #F0DE90;border-left:3px solid #FFD100;border-radius:10px;padding:13px 15px">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+                          <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#8A6A00">Guardrail activado · bloqueo</span>
+                          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#A08D5A">{{ t.hora }}</span>
+                        </div>
+                        <div style="font-size:12.5px;line-height:1.5;color:#3A3A3A">{{ t.texto }}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8A6A00;margin-top:7px">{{ t.politica }}</div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ t.esProgramado }}" hint-placeholder-val="{{ false }}">
+                      <div style="width:100%;max-width:78%;margin-left:auto;background:#fff;border:1.5px dashed #C9C9C9;border-radius:12px;padding:13px 15px">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+                          <span style="font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:#3FAE49">WhatsApp programado</span>
+                          <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8A8A8A">{{ t.hora }}</span>
+                          <div style="flex:1"></div>
+                          <span style="{{ t.aprobacionStyle }}">{{ t.aprobacion }}</span>
+                        </div>
+                        <div style="font-size:12.5px;line-height:1.55;color:#4A4A4A">{{ t.texto }}</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid #F0F0F0;flex-wrap:wrap">
+                          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9B9B9B;flex:1">{{ t.plantilla }}</span>
+                          <button style="font:600 11px 'Instrument Sans',sans-serif;background:#fff;border:1px solid #DEDEDE;border-radius:7px;padding:6px 11px;cursor:pointer;color:#4A4A4A">Editar</button>
+                          <button style="font:600 11px 'Instrument Sans',sans-serif;background:#fff;border:1px solid #E7C9C9;border-radius:7px;padding:6px 11px;cursor:pointer;color:#B03A3A">Cancelar envío</button>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <sc-if value="{{ t.esMensaje }}" hint-placeholder-val="{{ true }}">
+                      <div style="{{ t.colStyle }}">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                          <span style="{{ t.canalChip }}">{{ t.canal }}</span>
+                          <span style="font-size:10.5px;font-weight:600;color:#6B6B6B">{{ t.autor }}</span>
+                          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#A8A8A8">{{ t.hora }}</span>
+                        </div>
+
+                        <sc-if value="{{ t.tieneAudio }}" hint-placeholder-val="{{ false }}">
+                          <div style="{{ t.audioStyle }}">
+                            <span style="{{ t.playStyle }}"></span>
+                            <span style="display:flex;align-items:center;gap:2.5px;height:20px;flex:1">
+                              <sc-for list="{{ t.ondas }}" as="w" hint-placeholder-count="28">
+                                <span style="{{ w.style }}"></span>
+                              </sc-for>
+                            </span>
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;{{ t.audioTextColor }}">{{ t.duracion }}</span>
+                          </div>
+                        </sc-if>
+
+                        <div style="{{ t.bubbleStyle }}">{{ t.texto }}</div>
+
+                        <div style="{{ t.chipsStyle }}">
+                          <sc-for list="{{ t.chips }}" as="ch" hint-placeholder-count="2">
+                            <span style="{{ ch.style }}">{{ ch.label }}</span>
+                          </sc-for>
+                        </div>
+
+                        <sc-if value="{{ t.tienePolitica }}" hint-placeholder-val="{{ false }}">
+                          <div style="background:#F6EFFB;border:1px solid #E5D5F2;border-radius:9px;padding:10px 13px;max-width:100%">
+                            <span style="font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:#7A3FA8">Motor de políticas</span>
+                            <span style="display:block;font-size:11.5px;line-height:1.5;color:#5A4470;margin-top:4px">{{ t.politica }}</span>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-if>
+
+                  </div>
+                </sc-for>
+
+                <div style="background:#1A1A1A;border-radius:12px;padding:17px 19px;color:#fff;margin-top:3px">
+                  <div style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;color:#FFD100">Resultado del ticket</div>
+                  <div style="font-size:17px;font-weight:700;margin-top:7px;letter-spacing:-.3px">Compromiso de pago obtenido por voz</div>
+                  <div style="display:flex;gap:26px;flex-wrap:wrap;margin-top:13px">
+                    <div><div style="font-size:10.5px;color:#9B9B9B">Monto comprometido</div><div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin-top:2px">$ 156.20</div></div>
+                    <div><div style="font-size:10.5px;color:#9B9B9B">Fecha acordada</div><div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin-top:2px">12 sep 2026</div></div>
+                    <div><div style="font-size:10.5px;color:#9B9B9B">Saldo restante</div><div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin-top:2px">18 sep 2026</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-top:1px solid #EDEDED;background:#fff;flex-wrap:wrap">
+                <div style="flex:1;min-width:180px;background:#F7F7F7;border:1px solid #E3E3E3;border-radius:999px;padding:10px 15px;font-size:12px;color:#9B9B9B">Intervenir como operadora humana…</div>
+                <button style="font:700 12px 'Instrument Sans',sans-serif;background:#F2F2F2;border:1px solid #E3E3E3;border-radius:999px;padding:10px 15px;cursor:pointer;color:#4A4A4A">Llamar</button>
+                <button style="font:700 12px 'Instrument Sans',sans-serif;background:#FFD100;border:none;border-radius:999px;padding:10px 17px;cursor:pointer;color:#1A1A1A">Enviar WhatsApp</button>
+              </div>
+            </section>
+
+            <!-- PANEL DERECHO -->
+            <div style="display:flex;flex-direction:column;gap:13px">
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#00B5CC;display:block"></span>
+                  <h3 style="margin:0;font-size:13px;font-weight:700">Asistente de voz · llamada 1</h3>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;background:#EAF9FB;border:1px solid #C7EDF3;border-radius:10px;padding:11px 13px;margin-bottom:14px">
+                  <span style="width:26px;height:26px;border-radius:50%;background:#00B5CC;flex:none;display:flex;align-items:center;justify-content:center">
+                    <span style="width:0;height:0;border-left:7px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:2px;display:block"></span>
+                  </span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:11.5px;font-weight:600;color:#0A5A66">Grabación completa</span>
+                    <span style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3E8C99">call_9f31c.wav · 04:12</span>
+                  </span>
+                </div>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ resumenVoz }}" as="r" hint-placeholder-count="7">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F0">
+                      <span style="font-size:11.5px;color:#6B6B6B">{{ r.label }}</span>
+                      <span style="{{ r.valStyle }}">{{ r.valor }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#3FAE49;display:block"></span>
+                  <h3 style="margin:0;font-size:13px;font-weight:700">WhatsApp programados</h3>
+                  <div style="flex:1"></div>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8A8A8A">3 en cola</span>
+                </div>
+                <p style="margin:0 0 13px;font-size:11px;line-height:1.5;color:#8A8A8A">Mensajes que el agente enviará a este cliente. La operadora puede editarlos o cancelarlos antes de la hora de envío.</p>
+                <div style="display:flex;flex-direction:column;gap:9px">
+                  <sc-for list="{{ programados }}" as="p" hint-placeholder-count="3">
+                    <div style="border:1px solid #E7E7E7;border-left:3px solid #3FAE49;border-radius:9px;padding:11px 13px;background:#FCFCFC">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;color:#4A4A4A">{{ p.cuando }}</span>
+                        <div style="flex:1"></div>
+                        <span style="{{ p.estadoStyle }}">{{ p.estado }}</span>
+                      </div>
+                      <div style="font-size:11.5px;line-height:1.5;color:#4A4A4A;margin-top:6px">{{ p.texto }}</div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#9B9B9B;margin-top:6px">{{ p.plantilla }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section style="background:#F6EFFB;border:1px solid #E5D5F2;border-radius:12px;padding:17px 19px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#8B4FBF;display:block"></span>
+                  <h3 style="margin:0;font-size:12.5px;font-weight:700;color:#4A2A6B">Próxima acción recomendada</h3>
+                </div>
+                <div style="font-size:14.5px;font-weight:700">{{ tk.nba }}</div>
+                <p style="margin:7px 0 0;font-size:11.5px;line-height:1.55;color:#5A4470">{{ tk.nbaMotivo }}</p>
+                <div style="display:flex;gap:8px;margin-top:13px;flex-wrap:wrap">
+                  <button style="font:700 11.5px 'Instrument Sans',sans-serif;background:#1A1A1A;color:#fff;border:none;border-radius:999px;padding:9px 15px;cursor:pointer">Aprobar</button>
+                  <button style="font:700 11.5px 'Instrument Sans',sans-serif;background:#fff;color:#4A2A6B;border:1px solid #DFD1F0;border-radius:999px;padding:9px 15px;cursor:pointer">Cambiar acción</button>
+                </div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <h3 style="margin:0 0 11px;font-size:13px;font-weight:700">Trazabilidad</h3>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.95;color:#6B6B6B">
+                  <div>ticket &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ tk.id }}</div>
+                  <div>policy_version &nbsp;v3.1</div>
+                  <div>stt_engine &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;es-SV · conf. 0.94</div>
+                  <div>model &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nba-engine-4.2</div>
+                  <div>revisión &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;M. Rivas · 11 sep</div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ 4. DETALLE DE CLIENTE ============ -->
+      <sc-if value="{{ esCliente }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:19px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <span style="width:46px;height:46px;border-radius:12px;background:#1A1A1A;color:#FFD100;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex:none">{{ det.iniciales }}</span>
+            <div style="min-width:180px">
+              <div style="font-size:18px;font-weight:700;letter-spacing:-.4px">{{ det.nombre }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#8A8A8A;margin-top:2px">{{ det.id }} · {{ det.segmento }} · Cliente desde 2019</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:20px">
+              <div style="text-align:right">
+                <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9B9B9B;font-weight:700">Score de riesgo</div>
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:3px">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;letter-spacing:-1px">{{ det.score }}</span>
+                  <span style="{{ det.bandaStyle }}">{{ det.banda }}</span>
+                </div>
+              </div>
+              <button onClick="{{ verTicket }}" style="font:700 12px 'Instrument Sans',sans-serif;background:#FFD100;color:#1A1A1A;border:none;border-radius:999px;padding:10px 17px;cursor:pointer">Abrir ticket activo</button>
+            </div>
+          </section>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start">
+
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <h3 style="margin:0 0 13px;font-size:13.5px;font-weight:700">Datos del préstamo</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:1px;background:#EDEDED;border:1px solid #EDEDED;border-radius:9px;overflow:hidden">
+                  <sc-for list="{{ det.prestamo }}" as="p" hint-placeholder-count="6">
+                    <div style="background:#fff;padding:12px 14px">
+                      <div style="font-size:10.5px;color:#8A8A8A;font-weight:500">{{ p.label }}</div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;margin-top:3px">{{ p.valor }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+                  <h3 style="margin:0;font-size:13.5px;font-weight:700">Historial de pagos</h3>
+                  <span style="font-size:10.5px;color:#8A8A8A">Últimos 12 ciclos</span>
+                </div>
+                <div style="display:flex;gap:5px">
+                  <sc-for list="{{ det.pagos }}" as="p" hint-placeholder-count="12">
+                    <span style="{{ p.style }}"></span>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:13px;font-size:11px;color:#6B6B6B;flex-wrap:wrap">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#3FAE49;display:block"></span>A tiempo · 8</span>
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#FFD100;display:block"></span>Tardío · 3</span>
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:#D64545;display:block"></span>Incumplido · 1</span>
+                </div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <h3 style="margin:0 0 4px;font-size:13.5px;font-weight:700">Tickets e intervenciones</h3>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ det.intervenciones }}" as="i" hint-placeholder-count="4">
+                    <div style="display:grid;grid-template-columns:66px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #F0F0F0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8A8A8A">{{ i.fecha }}</span>
+                      <span style="min-width:0">
+                        <span style="display:block;font-size:12.5px;font-weight:600">{{ i.titulo }}</span>
+                        <span style="display:block;font-size:11px;color:#8A8A8A;margin-top:2px">{{ i.detalle }}</span>
+                      </span>
+                      <span style="{{ i.pillStyle }}">{{ i.resultado }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
+                  <h3 style="margin:0;font-size:13.5px;font-weight:700">Desglose del score</h3>
+                  <span style="font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#7A3FA8;background:#F6EFFB;border:1px solid #E5D5F2;border-radius:999px;padding:4px 10px">Explicabilidad</span>
+                </div>
+                <p style="margin:0 0 16px;font-size:11.5px;line-height:1.5;color:#8A8A8A">Tres factores concentran el {{ det.pesoTop3 }} del score vigente. Modelo v4.2, recalculado hace 6 minutos.</p>
+
+                <div style="position:relative;height:8px;border-radius:5px;background:linear-gradient(90deg,#3FAE49 0%,#FFD100 35%,#F5842A 62%,#D64545 85%,#8E2B18 100%);margin-bottom:7px">
+                  <span style="{{ det.markerStyle }}"></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#9B9B9B;margin-bottom:18px">
+                  <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <sc-for list="{{ det.factores }}" as="f" hint-placeholder-count="3">
+                    <div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px">
+                        <span style="font-size:12.5px;font-weight:600">{{ f.nombre }}</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#4A4A4A">{{ f.peso }}</span>
+                      </div>
+                      <div style="height:10px;border-radius:5px;background:#EDEDED;overflow:hidden">
+                        <div style="{{ f.barStyle }}"></div>
+                      </div>
+                      <div style="font-size:11px;color:#8A8A8A;margin-top:5px;line-height:1.45">{{ f.explicacion }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid #F0F0F0;font-size:11px;color:#8A8A8A;line-height:1.5">Factores restantes (antigüedad, uso de otros productos, estacionalidad del sector) aportan {{ det.pesoResto }} del score.</div>
+              </section>
+
+              <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:18px 20px">
+                <h3 style="margin:0 0 12px;font-size:13.5px;font-weight:700">Preferencias de contacto</h3>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ det.preferencias }}" as="p" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F0">
+                      <span style="font-size:11.5px;color:#6B6B6B">{{ p.label }}</span>
+                      <span style="{{ p.valStyle }}">{{ p.valor }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ 5. ESCALACIONES ============ -->
+      <sc-if value="{{ esEscalaciones }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:13px">
+            <sc-for list="{{ escKpis }}" as="k" hint-placeholder-count="4">
+              <div style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:15px 17px">
+                <div style="font-size:11px;font-weight:600;color:#6B6B6B">{{ k.label }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:600;letter-spacing:-.8px;margin-top:5px">{{ k.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:13px;align-items:start">
+            <sc-for list="{{ columnas }}" as="col" hint-placeholder-count="3">
+              <section style="background:#EAEAEA;border:1px solid #E0E0E0;border-radius:12px;padding:13px">
+                <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 12px">
+                  <span style="{{ col.dot }}"></span>
+                  <span style="font-size:12.5px;font-weight:700">{{ col.titulo }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8A8A8A">{{ col.conteo }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ col.items }}" as="e" hint-placeholder-count="3">
+                    <div style="background:#fff;border:1px solid #E3E3E3;border-radius:10px;padding:13px 15px" style-hover="border-color:#1A1A1A">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span style="{{ e.prioStyle }}">{{ e.prioridad }}</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#9B9B9B">{{ e.tiempo }}</span>
+                      </div>
+                      <div style="font-size:13px;font-weight:700;margin-top:9px">{{ e.cliente }}</div>
+                      <div style="font-size:11.5px;color:#6B6B6B;line-height:1.45;margin-top:4px">{{ e.motivo }}</div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid #F0F0F0">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9B9B9B">{{ e.id }}</span>
+                        <span style="font-size:11px;color:#4A4A4A">{{ e.asignado }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ 6. POLÍTICAS ============ -->
+      <sc-if value="{{ esPoliticas }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:920px;display:flex;flex-direction:column;gap:14px">
+
+          <section style="background:#fff;border:1px solid #E3E3E3;border-radius:12px;padding:26px 30px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:1px solid #EDEDED;padding-bottom:18px">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A8A;font-weight:700">Documento de gobernanza</div>
+                <h2 style="margin:6px 0 5px;font-size:23px;font-weight:700;letter-spacing:-.6px">Política de contacto preventivo</h2>
+                <div style="font-size:12px;color:#6B6B6B">Aprobada por el Comité de Riesgo y Cumplimiento · Vigente desde el 1 de septiembre de 2026</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;background:#FFD100;color:#1A1A1A;border-radius:7px;padding:6px 11px">v3.1</span>
+                <span style="font-size:11px;font-weight:600;color:#2E7D33;background:#F1F8F2;border:1px solid #D6E9D8;border-radius:7px;padding:5px 10px">Solo lectura</span>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:26px;padding-top:22px">
+              <sc-for list="{{ politicas }}" as="s" hint-placeholder-count="5">
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:12px">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#B5B5B5">{{ s.num }}</span>
+                    <h3 style="margin:0;font-size:14.5px;font-weight:700;letter-spacing:-.2px">{{ s.titulo }}</h3>
+                  </div>
+                  <div style="display:flex;flex-direction:column">
+                    <sc-for list="{{ s.reglas }}" as="r" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:minmax(170px,1fr) minmax(140px,auto);gap:18px;align-items:baseline;padding:11px 0 11px 22px;border-top:1px solid #F0F0F0">
+                        <span style="min-width:0">
+                          <span style="display:block;font-size:12.5px;font-weight:600">{{ r.label }}</span>
+                          <span style="display:block;font-size:11.5px;color:#8A8A8A;line-height:1.45;margin-top:3px">{{ r.nota }}</span>
+                        </span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;text-align:right">{{ r.valor }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section style="background:#FFF9DB;border:1px solid #F0DE90;border-radius:12px;padding:20px 24px">
+            <h3 style="margin:0 0 8px;font-size:13.5px;font-weight:700;color:#6B5300">Cláusula de trato al cliente</h3>
+            <p style="margin:0;font-size:12.5px;line-height:1.65;color:#5A4A1E;max-width:74ch">El agente se dirige al cliente siempre de usted, no emite advertencias legales, no menciona consecuencias crediticias y no insiste tras una negativa explícita. Ante indicios de dificultad financiera, vulnerabilidad o molestia sostenida, la conversación se transfiere a un operador humano dentro del mismo turno. Toda excepción queda registrada y se revisa semanalmente.</p>
+          </section>
+
+          <div style="font-size:11px;color:#9B9B9B;padding:0 4px">Cambios a esta política requieren aprobación del Comité y generan una nueva versión. Historial: v3.0 (jun 2026) · v2.4 (feb 2026) · v2.0 (oct 2025).</div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;entidad&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Banco Agrícola&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Identidad&quot;},&quot;mostrarLive&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+class Component extends DCLogic {
+  state = { screen:'tickets', perfil:'Personas', estado:'Todos', canal:'Todos', queue:'datos', hilo:'Todo', ticketId:'TCK-2291' };
+
+  perfilDefs = [
+    ['Personas','#FFD100',86],['Preferencial','#8B4FBF',24],['Pyme','#00B5CC',19],['Empresas y Gobierno','#F5842A',13]
+  ];
+
+  bands = {
+    'BAJO':{bg:'#F1F8F2',fg:'#2E7D33',bar:'#3FAE49'},
+    'MODERADO':{bg:'#FFF9DB',fg:'#7A5E00',bar:'#FFD100'},
+    'PREVENTIVO':{bg:'#FEF0E3',fg:'#9A4F16',bar:'#F5842A'},
+    'ALTO':{bg:'#FBE7E7',fg:'#A83030',bar:'#D64545'},
+    'CRÍTICO':{bg:'#F6DADA',fg:'#6E1E11',bar:'#8E2B18'}
+  };
+
+  tk = [
+    {id:'TCK-2291',cliente:'Carlos Martínez',clienteId:'CLI-04821',perfil:'Personas',producto:'Préstamo personal',saldo:'$ 3,120.00',score:87,estado:'Compromiso',prioridad:'Alta',canales:['Voz','WhatsApp'],ultimoEvento:'Llamada de voz completada: el cliente aceptó abonar $156.20 el 12 de septiembre.',hace:'hace 18 h',sla:'6 h 40 m',slaPct:28,nba:'Confirmar compromiso por WhatsApp'},
+    {id:'TCK-2290',cliente:'Rosa Elena Cruz',clienteId:'CLI-07734',perfil:'Personas',producto:'Tarjeta clásica',saldo:'$ 812.55',score:94,estado:'Voz en curso',prioridad:'Alta',canales:['Voz'],ultimoEvento:'El asistente de voz está en el turno 4. Sentimiento del cliente en descenso.',hace:'hace 2 min',sla:'12 min',slaPct:88,nba:'Escalar a operador humano'},
+    {id:'TCK-2289',cliente:'Mauricio Portillo',clienteId:'CLI-01458',perfil:'Preferencial',producto:'Tarjeta oro',saldo:'$ 2,015.30',score:91,estado:'Escalado',prioridad:'Alta',canales:['Voz','WhatsApp'],ultimoEvento:'Solicitó una extensión de 21 días, por encima del máximo de política.',hace:'hace 41 min',sla:'1 h 20 m',slaPct:66,nba:'Evaluar excepción con el Comité'},
+    {id:'TCK-2288',cliente:'Julio Meléndez',clienteId:'CLI-02190',perfil:'Pyme',producto:'Crédito agrícola',saldo:'$ 14,500.00',score:78,estado:'Esperando respuesta',prioridad:'Media',canales:['WhatsApp'],ultimoEvento:'WhatsApp entregado y leído. Sin respuesta desde hace 5 horas.',hace:'hace 5 h',sla:'19 h',slaPct:22,nba:'Programar llamada de voz'},
+    {id:'TCK-2287',cliente:'Ana Beatriz Lara',clienteId:'CLI-06612',perfil:'Personas',producto:'Préstamo vehicular',saldo:'$ 9,240.80',score:66,estado:'Nuevo',prioridad:'Media',canales:['SMS'],ultimoEvento:'Ticket creado por el motor de riesgo. Sin contacto todavía.',hace:'hace 22 min',sla:'23 h',slaPct:9,nba:'Recordatorio amistoso por WhatsApp'},
+    {id:'TCK-2286',cliente:'Rafael Ayala',clienteId:'CLI-05544',perfil:'Empresas y Gobierno',producto:'Préstamo hipotecario',saldo:'$ 41,200.00',score:72,estado:'Esperando respuesta',prioridad:'Alta',canales:['Voz','Correo'],ultimoEvento:'Monto en disputa: el cliente afirma haber pagado la cuota anterior.',hace:'hace 2 h',sla:'4 h 10 m',slaPct:54,nba:'Verificar aplicación del pago'},
+    {id:'TCK-2285',cliente:'Sandra Guevara',clienteId:'CLI-08903',perfil:'Personas',producto:'Préstamo personal',saldo:'$ 1,470.00',score:58,estado:'Esperando respuesta',prioridad:'Baja',canales:['WhatsApp','Correo'],ultimoEvento:'Pidió hablar con una persona antes de aceptar cualquier plan.',hace:'hace 6 h',sla:'16 h',slaPct:33,nba:'Asignar a operador humano'},
+    {id:'TCK-2284',cliente:'Delmy Hernández',clienteId:'CLI-09120',perfil:'Personas',producto:'Tarjeta clásica',saldo:'$ 430.10',score:33,estado:'Cerrado',prioridad:'Baja',canales:['WhatsApp'],ultimoEvento:'Compromiso cumplido: pago aplicado el 9 de septiembre.',hace:'ayer',sla:'Cumplido',slaPct:100,nba:'Sin acción requerida'},
+    {id:'TCK-2283',cliente:'Óscar Ramírez',clienteId:'CLI-03377',perfil:'Pyme',producto:'Crédito agrícola',saldo:'$ 6,880.00',score:41,estado:'Cerrado',prioridad:'Baja',canales:['SMS'],ultimoEvento:'Actualización de número de contacto aplicada al expediente.',hace:'hace 2 días',sla:'Cumplido',slaPct:100,nba:'Sin acción requerida'}
+  ];
+
+  bandaDe(s){ return s>=90?'CRÍTICO':s>=75?'ALTO':s>=50?'PREVENTIVO':s>=25?'MODERADO':'BAJO'; }
+  iniciales(n){ const p=n.split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+  go(screen){ return () => this.setState({screen}); }
+  colorPerfil(p){ const d=this.perfilDefs.find(x=>x[0]===p); return d?d[1]:'#FFD100'; }
+
+  pill(bg,fg){ return 'font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:'+bg+';color:'+fg+';white-space:nowrap'; }
+  chipBtn(activo){ return 'display:flex;align-items:center;gap:6px;font:600 11.5px \'Instrument Sans\',sans-serif;padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;border:1px solid '+(activo?'#1A1A1A':'#E0E0E0')+';background:'+(activo?'#1A1A1A':'#fff')+';color:'+(activo?'#fff':'#4A4A4A'); }
+
+  renderVals(){
+    const s = this.state;
+    const titles = {
+      inicio:['Panel general','Mora evitada y salud de la cartera'],
+      tickets:['Cobranza preventiva','Cola de riesgo · tickets'],
+      ticket:['Cola de riesgo / Ticket','Conversación del ticket'],
+      cliente:['Cola de riesgo / Ticket','Ficha del cliente'],
+      escalaciones:['Cobranza preventiva','Escalaciones'],
+      politicas:['Gobernanza','Políticas activas']
+    };
+
+    const perfiles = this.perfilDefs.map(([label,color,conteo]) => {
+      const on = s.perfil===label;
+      return {
+        label, conteo:String(conteo), go:()=>this.setState({perfil:label}),
+        style:'display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:none;border-radius:8px;cursor:pointer;font:'+(on?'700':'500')+' 11.5px \'Instrument Sans\',sans-serif;background:'+(on?'#2E2E2E':'transparent')+';color:'+(on?'#fff':'#9B9B9B'),
+        dot:'width:8px;height:8px;border-radius:2px;flex:none;display:block;background:'+(on?color:'#555')
+      };
+    });
+
+    const abiertos = this.tk.filter(t => t.perfil===s.perfil && t.estado!=='Cerrado').length;
+    const navDefs = [
+      ['inicio','Inicio','','#FFD100'],
+      ['tickets','Cola de riesgo',String(abiertos),'#F5842A'],
+      ['ticket','Conversaciones','','#00B5CC'],
+      ['cliente','Clientes','','#8B4FBF'],
+      ['escalaciones','Escalaciones','3','#D64545'],
+      ['politicas','Políticas','','#9B9B9B']
+    ];
+    const nav = navDefs.map(([k,label,badge,color]) => {
+      const on = s.screen===k;
+      return {
+        label, badge, go:this.go(k),
+        style:'display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:none;border-radius:8px;cursor:pointer;font:'+(on?'700':'500')+' 12.5px \'Instrument Sans\',sans-serif;background:'+(on?'#2E2E2E':'transparent')+';color:'+(on?'#fff':'#9B9B9B'),
+        dot:'width:7px;height:7px;border-radius:2px;flex:none;display:block;background:'+(on?color:'#555'),
+        badgeStyle: badge ? 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;background:#FFD100;color:#1A1A1A;border-radius:5px;padding:2px 6px;font-weight:600' : 'display:none'
+      };
+    });
+
+    const bar = (pct,color) => 'height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;display:block';
+    const up = 'font-size:11px;font-weight:700;color:#2E7D33';
+
+    const kpis = [
+      ['Preventive Intervention Rate','82%','+6 pts',82,'#3FAE49','1,284 de 1,562 elegibles'],
+      ['Commitment Rate','54%','+9 pts',54,'#FFD100','693 compromisos obtenidos'],
+      ['Commitment Kept Rate','71%','+3 pts',71,'#3FAE49','492 compromisos cumplidos'],
+      ['Response Rate','63%','+4 pts',63,'#F5842A','Primer turno respondido'],
+      ['Escalation Rate','11%','−2 pts',11,'#8B4FBF','141 tickets a operador humano'],
+      ['Risk Reduction promedio','−23 pts',' ',68,'#3FAE49','Score antes vs. después'],
+      ['Canal más efectivo','Voz IA',' ',74,'#00B5CC','74% de tasa de respuesta'],
+      ['Violaciones de guardrail','0.4%','−0.3 pts',4,'#D64545','6 bloqueos en 1,562 turnos'],
+      ['Latencia P95 en voz','1.8 s',' ',36,'#8B4FBF','Objetivo ≤ 3 s']
+    ].map(([label,value,delta,pct,color,note]) => ({label,value,delta,deltaStyle:up,barStyle:bar(pct,color),note}));
+
+    const canales = [
+      ['Voz IA',74,'74%','#00B5CC'],['WhatsApp',68,'68%','#3FAE49'],
+      ['SMS',41,'41%','#F5842A'],['Correo',22,'22%','#8B4FBF']
+    ].map(([nombre,pct,valor,color]) => ({nombre,valor,barStyle:bar(pct,color)}));
+
+    const gobernanza = [
+      ['Turnos dentro de ventana horaria','100%','#2E7D33'],
+      ['Contactos sobre el máximo semanal','0','#2E7D33'],
+      ['Guardrails bloqueados (7 días)','6','#9A4F16'],
+      ['Llamadas con transcripción completa','1,284','#4A4A4A'],
+      ['Política vigente','v3.1','#4A4A4A']
+    ].map(([label,valor,c]) => ({label,valor,valStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:12.5px;font-weight:600;color:'+c}));
+
+    // ---- TICKETS
+    const estadoColors = {
+      'Nuevo':['#F2F2F2','#4A4A4A'],'Voz en curso':['#EAF9FB','#0A5A66'],
+      'Esperando respuesta':['#FFF9DB','#7A5E00'],'Compromiso':['#F1F8F2','#2E7D33'],
+      'Escalado':['#FBE7E7','#A83030'],'Cerrado':['#EFEFEF','#7A7A7A']
+    };
+    const prioColors = {'Alta':['#FBE7E7','#A83030'],'Media':['#FFF9DB','#7A5E00'],'Baja':['#F2F2F2','#7A7A7A']};
+    const canalColors = {'Voz':['#EAF9FB','#0A5A66','#00B5CC'],'WhatsApp':['#F1F8F2','#2E7D33','#3FAE49'],'SMS':['#FEF0E3','#9A4F16','#F5842A'],'Correo':['#F6EFFB','#5A4470','#8B4FBF']};
+
+    const enPerfil = this.tk.filter(t => t.perfil===s.perfil);
+    const estadoOpts = ['Todos','Nuevo','Voz en curso','Esperando respuesta','Compromiso','Escalado','Cerrado'];
+    const filtrosEstado = estadoOpts.map(e => {
+      const on = s.estado===e;
+      const n = e==='Todos' ? enPerfil.length : enPerfil.filter(t=>t.estado===e).length;
+      return {label:e==='Todos'?'Todos los tickets':e, conteo:String(n), go:()=>this.setState({estado:e}), style:this.chipBtn(on),
+        countStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:10px;padding:1px 5px;border-radius:4px;background:'+(on?'#FFD100':'#F2F2F2')+';color:#1A1A1A'};
+    });
+    const filtrosCanal = ['Todos','Voz','WhatsApp','SMS','Correo'].map(c => ({label:c==='Todos'?'Todos los canales':c, go:()=>this.setState({canal:c}), style:this.chipBtn(s.canal===c)}));
+    const estadosDemo = [['datos','Con datos'],['cargando','Cargando'],['vacio','Vacío']].map(([k,label]) => ({label, go:()=>this.setState({queue:k}), style:this.chipBtn(s.queue===k)}));
+
+    const lista = enPerfil
+      .filter(t => (s.estado==='Todos' || t.estado===s.estado) && (s.canal==='Todos' || t.canales.indexOf(s.canal)>=0))
+      .slice().sort((a,b) => b.score-a.score);
+
+    const tickets = lista.map(t => {
+      const b = this.bands[this.bandaDe(t.score)];
+      const ec = estadoColors[t.estado], pc = prioColors[t.prioridad];
+      const urgente = t.slaPct>=66;
+      return {
+        ...t, banda:this.bandaDe(t.score), iniciales:this.iniciales(t.cliente), segmento:t.perfil,
+        cardStyle:'background:#fff;border:1px solid #E3E3E3;border-left:4px solid '+this.colorPerfil(t.perfil)+';border-radius:12px;padding:15px 17px;cursor:pointer',
+        avatarStyle:'width:34px;height:34px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;background:'+b.bg+';color:'+b.fg,
+        estadoStyle:this.pill(ec[0],ec[1]), prioStyle:this.pill(pc[0],pc[1]), bandaStyle:'font-size:9.5px;font-weight:700;letter-spacing:.04em;color:'+b.fg,
+        canales: t.canales.map(c => ({label:c, style:'display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:'+canalColors[c][0]+';color:'+canalColors[c][1]})),
+        eventoStyle:'display:flex;gap:9px;margin-top:12px;background:#FAFAFA;border:1px solid #F0F0F0;border-radius:9px;padding:10px 12px',
+        eventoDot:'width:7px;height:7px;border-radius:50%;flex:none;margin-top:4px;display:block;background:'+(urgente?'#D64545':canalColors[t.canales[0]][2]),
+        slaBar:'height:100%;width:'+t.slaPct+'%;background:'+(urgente?'#D64545':t.estado==='Cerrado'?'#3FAE49':'#FFD100')+';border-radius:3px;display:block',
+        slaTextStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;font-weight:600;white-space:nowrap;color:'+(urgente?'#A83030':'#4A4A4A'),
+        abrir: () => this.setState({screen:'ticket',ticketId:t.id})
+      };
+    });
+
+    // ---- TICKET ABIERTO
+    const cur = this.tk.find(t => t.id===s.ticketId) || this.tk[0];
+    const cb = this.bands[this.bandaDe(cur.score)];
+    const ecCur = estadoColors[cur.estado];
+    const tkView = {
+      ...cur, segmento:cur.perfil, banda:this.bandaDe(cur.score), iniciales:this.iniciales(cur.cliente),
+      avatarStyle:'width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:'+cb.bg+';color:'+cb.fg,
+      estadoStyle:this.pill(ecCur[0],ecCur[1]), bandaStyle:this.pill(cb.bg,cb.fg),
+      nbaMotivo:'El cliente declaró una reducción temporal de ingresos y aceptó un abono parcial por voz. La política v3.1 permite confirmar por escrito y programar el recordatorio sin aprobación humana.'
+    };
+
+    const chip = (label,bg,fg) => ({label, style:'font-size:10px;font-weight:600;letter-spacing:.03em;padding:3px 7px;border-radius:5px;background:'+bg+';color:'+fg});
+    const ondas = (n,color,seed) => Array.from({length:n},(_,i) => {
+      const h = 5 + ((i*7+seed*13)%9)*1.7;
+      return {style:'width:2.5px;height:'+h.toFixed(0)+'px;border-radius:2px;flex:none;display:block;background:'+color};
+    });
+
+    const hiloRaw = [
+      {kind:'sys',texto:'Ticket creado por el motor de riesgo · score 87 · banda ALTO'},
+      {kind:'voz',who:'agente',hora:'14:22',dur:'0:14',texto:'Buenas tardes, ¿hablo con el señor Carlos Martínez? Le llamamos del banco para recordarle, con tiempo, que su cuota de $312.40 vence el 15 de septiembre. ¿Le queda cómoda esa fecha?',chips:[chip('SALUDO PREVENTIVO','#F6EFFB','#5A4470'),chip('conf. 0.96','#F2F2F2','#6B6B6B')],politica:'Turno 1 dentro de la ventana permitida (08:00–19:00). Acciones habilitadas: recordar, consultar disponibilidad.'},
+      {kind:'voz',who:'cliente',hora:'14:24',dur:'0:21',texto:'Buenas tardes. La verdad este mes se me complicó, me redujeron las horas en el trabajo y no voy a tener todo el monto.',chips:[chip('FINANCIAL_DIFFICULTY','#FEF0E3','#9A4F16'),chip('Sentimiento −0.4','#F2F2F2','#6B6B6B')]},
+      {kind:'voz',who:'agente',hora:'14:25',dur:'0:17',texto:'Gracias por contarnos, lo tomamos en cuenta. Podemos buscar una alternativa: ¿le serviría abonar una parte ahora y el resto unos días después del 15?',chips:[chip('OFRECER PLAN PARCIAL','#F6EFFB','#5A4470')],politica:'Intención de dificultad detectada. Se habilita negociación de pago parcial (mínimo $75.00) y extensión ≤ 7 días.'},
+      {kind:'guard',hora:'14:26',texto:'El agente de voz intentó mencionar el reporte a la central de riesgo como argumento de urgencia. El motor de políticas bloqueó la frase antes de sintetizarla y la reformuló en tono neutral.',politica:'regla: prohibido_mencionar_consecuencias_crediticias · acción: bloqueo + reescritura · registro: gr_2291'},
+      {kind:'voz',who:'cliente',hora:'14:28',dur:'0:11',texto:'Sí, eso me ayudaría bastante. Podría dar como la mitad esta semana.',chips:[chip('WILL_PAY','#F1F8F2','#2E7D33'),chip('Sentimiento +0.3','#F2F2F2','#6B6B6B')]},
+      {kind:'voz',who:'agente',hora:'14:29',dur:'0:16',texto:'Perfecto. Registramos un abono de $156.20 para el 12 de septiembre y el resto para el 18. ¿Me confirma esas dos fechas?',chips:[chip('CONFIRMAR COMPROMISO','#F6EFFB','#5A4470')],politica:'Extensión de 3 días sobre la fecha original: dentro del máximo autorizado. No requiere aprobación humana.'},
+      {kind:'voz',who:'cliente',hora:'14:31',dur:'0:06',texto:'Confirmado, muchas gracias por la comprensión.',chips:[chip('COMMITMENT','#F1F8F2','#2E7D33'),chip('Sentimiento +0.7','#F2F2F2','#6B6B6B')]},
+      {kind:'sys',texto:'Llamada finalizada · 04:12 · transcripción completa disponible'},
+      {kind:'wa',who:'agente',hora:'14:33',texto:'Señor Martínez, le confirmamos por escrito lo acordado en la llamada: abono de $156.20 el 12 de septiembre y $156.20 el 18 de septiembre. Cualquier cambio, responda a este mensaje.',chips:[chip('Entregado','#F1F8F2','#2E7D33'),chip('Leído 14:40','#F2F2F2','#6B6B6B')],politica:'Confirmación escrita obligatoria tras un compromiso cerrado por voz.'},
+      {kind:'wa',who:'cliente',hora:'14:41',texto:'Gracias, así queda bien.',chips:[chip('ACK','#F1F8F2','#2E7D33')]},
+      {kind:'prog',hora:'Mañana 11 sep · 09:00',texto:'Buenos días, señor Martínez. Le recordamos que mañana 12 de septiembre corresponde su abono de $156.20. Puede pagarlo desde la banca móvil o en cualquier punto de servicio.',plantilla:'plantilla: recordatorio_abono_T-1',aprobacion:'Auto-aprobado'},
+      {kind:'prog',hora:'13 sep · 10:00',texto:'Señor Martínez, confirmamos la recepción de su abono. Le recordamos que el saldo de $156.20 vence el 18 de septiembre.',plantilla:'plantilla: confirmacion_abono_parcial',aprobacion:'Auto-aprobado'},
+      {kind:'prog',hora:'17 sep · 09:00',texto:'Buenos días, señor Martínez. Mañana vence el saldo restante de $156.20 acordado en su plan. ¿Necesita algún ajuste?',plantilla:'plantilla: recordatorio_saldo_final',aprobacion:'Requiere visto'}
+    ];
+
+    const canalChipStyle = (c) => 'font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:'+canalColors[c][0]+';color:'+canalColors[c][1];
+
+    const hilo = hiloRaw.filter(t => {
+      if (s.hilo==='Todo') return true;
+      if (s.hilo==='Voz') return t.kind==='voz' || t.kind==='guard';
+      if (s.hilo==='WhatsApp') return t.kind==='wa';
+      return t.kind==='prog';
+    }).map((t,i) => {
+      const base = {esSistema:false,esGuardrail:false,esProgramado:false,esMensaje:false,tieneAudio:false,tienePolitica:false,chips:[],ondas:[],wrapStyle:'display:flex;width:100%'};
+      if (t.kind==='sys') return {...base, esSistema:true, texto:t.texto};
+      if (t.kind==='guard') return {...base, esGuardrail:true, texto:t.texto, hora:t.hora, politica:t.politica};
+      if (t.kind==='prog') return {...base, esProgramado:true, texto:t.texto, hora:t.hora, plantilla:t.plantilla, aprobacion:t.aprobacion,
+        aprobacionStyle: t.aprobacion==='Auto-aprobado' ? this.pill('#F1F8F2','#2E7D33') : this.pill('#FFF9DB','#7A5E00')};
+      const yo = t.who==='agente';
+      const esVoz = t.kind==='voz';
+      const canal = esVoz ? 'Voz' : 'WhatsApp';
+      return {...base, esMensaje:true, hora:t.hora, texto:t.texto, chips:t.chips||[],
+        canal: esVoz ? 'Voz IA' : 'WhatsApp', canalChip: canalChipStyle(canal),
+        autor: yo ? (esVoz?'Asistente de voz':'Agente WhatsApp') : cur.cliente,
+        tieneAudio: esVoz, duracion: t.dur||'', ondas: esVoz ? ondas(26, yo?'#7ADDEA':'#C4C4C4', i) : [],
+        audioStyle:'display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:999px;max-width:100%;background:'+(yo?'#0E4C55':'#EFEFEF')+';border:1px solid '+(yo?'#0E4C55':'#E3E3E3'),
+        playStyle:'width:20px;height:20px;border-radius:50%;flex:none;display:block;background:'+(yo?'#00B5CC':'#9B9B9B'),
+        audioTextColor: yo ? 'color:#9FE4EE' : 'color:#6B6B6B',
+        tienePolitica: !!t.politica, politica:t.politica||'',
+        wrapStyle:'display:flex;width:100%;justify-content:'+(yo?'flex-start':'flex-end'),
+        colStyle:'display:flex;flex-direction:column;gap:7px;max-width:80%;align-items:'+(yo?'flex-start':'flex-end'),
+        bubbleStyle:'font-size:13px;line-height:1.55;padding:12px 15px;border-radius:'+(yo?'3px 12px 12px 12px':'12px 3px 12px 12px')+';background:'+(yo?'#1A1A1A':'#fff')+';color:'+(yo?'#fff':'#1A1A1A')+';border:1px solid '+(yo?'#1A1A1A':'#E3E3E3'),
+        chipsStyle:'display:flex;gap:6px;flex-wrap:wrap;justify-content:'+(yo?'flex-start':'flex-end')
+      };
+    });
+
+    const filtrosHilo = ['Todo','Voz','WhatsApp','Programados'].map(h => ({label:h, go:()=>this.setState({hilo:h}), style:this.chipBtn(s.hilo===h)}));
+
+    const resumenVoz = [
+      ['Duración de la llamada','04:12','#4A4A4A'],
+      ['Turnos transcritos','6','#4A4A4A'],
+      ['Confianza media del STT','0.94','#2E7D33'],
+      ['Intención dominante','FINANCIAL_DIFFICULTY','#9A4F16'],
+      ['Sentimiento final','+0.7','#2E7D33'],
+      ['Guardrails activados','1 bloqueado','#9A4F16'],
+      ['Score tras el contacto','87 → 61','#2E7D33']
+    ].map(([label,valor,c]) => ({label,valor,valStyle:'font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:600;color:'+c}));
+
+    const programados = [
+      {cuando:'11 sep · 09:00',estado:'Auto-aprobado',texto:'Recordatorio del abono de $156.20 para mañana.',plantilla:'recordatorio_abono_T-1'},
+      {cuando:'13 sep · 10:00',estado:'Auto-aprobado',texto:'Confirmación de recepción y recordatorio del saldo.',plantilla:'confirmacion_abono_parcial'},
+      {cuando:'17 sep · 09:00',estado:'Requiere visto',texto:'Recordatorio del saldo final de $156.20.',plantilla:'recordatorio_saldo_final'}
+    ].map(p => ({...p, estadoStyle: p.estado==='Auto-aprobado' ? this.pill('#F1F8F2','#2E7D33') : this.pill('#FFF9DB','#7A5E00')}));
+
+    // ---- CLIENTE
+    const pagosSeq = ['ok','ok','late','ok','ok','ok','late','ok','miss','ok','late','ok'];
+    const pagoColor = {ok:'#3FAE49',late:'#FFD100',miss:'#D64545'};
+    const det = {
+      nombre:cur.cliente, id:cur.clienteId, segmento:cur.perfil, score:cur.score, banda:this.bandaDe(cur.score),
+      iniciales:this.iniciales(cur.cliente), bandaStyle:this.pill(cb.bg,cb.fg),
+      markerStyle:'position:absolute;top:-4px;left:calc('+cur.score+'% - 8px);width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #1A1A1A;box-shadow:0 1px 4px rgba(0,0,0,.2);display:block',
+      prestamo:[
+        {label:'Monto original',valor:'$ 5,000.00'},{label:'Saldo actual',valor:cur.saldo},
+        {label:'Cuota mensual',valor:'$ 312.40'},{label:'Vencimiento',valor:'15 sep 2026'},
+        {label:'Días al vencimiento',valor:'3 días'},{label:'Ciclo',valor:'14 de 24'}
+      ],
+      pagos: pagosSeq.map(p => ({style:'flex:1;height:34px;border-radius:5px;display:block;background:'+pagoColor[p]})),
+      pesoTop3:'71%', pesoResto:'29%',
+      factores:[
+        {nombre:'Proximidad al vencimiento',peso:'32%',pct:32,color:'#D64545',explicacion:'Faltan 3 días para la fecha de corte y no hay abono registrado en el ciclo.'},
+        {nombre:'Ratio de pagos tardíos',peso:'24%',pct:24,color:'#F5842A',explicacion:'4 de los últimos 12 ciclos se pagaron fuera de fecha, dos de ellos consecutivos.'},
+        {nombre:'Caída de saldo en cuenta',peso:'15%',pct:15,color:'#FFD100',explicacion:'El saldo promedio de la cuenta de ahorro bajó 38% respecto al trimestre anterior.'}
+      ].map(f => ({...f, barStyle:'height:100%;width:'+(f.pct/32*100)+'%;background:'+f.color+';border-radius:5px;display:block'})),
+      intervenciones:[
+        {fecha:'10 sep',titulo:'TCK-2291 · llamada de voz IA',detalle:'6 turnos transcritos · intención FINANCIAL_DIFFICULTY',resultado:'Compromiso',rp:['#F1F8F2','#2E7D33']},
+        {fecha:'10 sep',titulo:'TCK-2291 · WhatsApp de confirmación',detalle:'Entregado y leído a las 14:40',resultado:'Leído',rp:['#F2F2F2','#6B6B6B']},
+        {fecha:'18 ago',titulo:'TCK-2104 · WhatsApp preventivo',detalle:'4 turnos · intención WILL_PAY',resultado:'Cumplido',rp:['#F1F8F2','#2E7D33']},
+        {fecha:'05 ago',titulo:'TCK-1988 · llamada de voz IA',detalle:'Cliente solicitó ser contactado por escrito',resultado:'Preferencia',rp:['#FEF0E3','#9A4F16']}
+      ].map(i => ({...i, pillStyle:this.pill(i.rp[0],i.rp[1])})),
+      preferencias:[
+        ['Canal preferido','WhatsApp','#2E7D33'],['Horario declarado','Tardes, después de 14:00','#4A4A4A'],
+        ['Idioma','Español (SV)','#4A4A4A'],['Consentimiento de grabación','Otorgado 05 ago','#2E7D33']
+      ].map(([label,valor,c]) => ({label,valor,valStyle:'font-size:11.5px;font-weight:600;text-align:right;color:'+c}))
+    };
+
+    // ---- ESCALACIONES
+    const prio = {'Alta':['#FBE7E7','#A83030'],'Media':['#FFF9DB','#7A5E00'],'Baja':['#F2F2F2','#7A7A7A']};
+    const esc = [
+      {col:0,prioridad:'Alta',tiempo:'hace 12 min',cliente:'Rosa Elena Cruz',motivo:'Molestia sostenida durante dos turnos de voz consecutivos.',id:'TCK-2290',asignado:'Sin asignar'},
+      {col:0,prioridad:'Alta',tiempo:'hace 41 min',cliente:'Mauricio Portillo',motivo:'Solicitó una extensión de 21 días, por encima del máximo de política.',id:'TCK-2289',asignado:'Sin asignar'},
+      {col:0,prioridad:'Media',tiempo:'hace 2 h',cliente:'Rafael Ayala',motivo:'Monto en disputa: el cliente afirma haber pagado la cuota anterior.',id:'TCK-2286',asignado:'Sin asignar'},
+      {col:1,prioridad:'Alta',tiempo:'hace 3 h',cliente:'Julio Meléndez',motivo:'Indicio de vulnerabilidad financiera; requiere evaluación de reestructura.',id:'TCK-2288',asignado:'M. Rivas'},
+      {col:1,prioridad:'Media',tiempo:'hace 5 h',cliente:'Sandra Guevara',motivo:'Pidió hablar con una persona antes de aceptar cualquier plan.',id:'TCK-2285',asignado:'J. Cabrera'},
+      {col:2,prioridad:'Media',tiempo:'ayer',cliente:'Ana Beatriz Lara',motivo:'Plan parcial aprobado por excepción; documentado en el expediente.',id:'TCK-2287',asignado:'M. Rivas'},
+      {col:2,prioridad:'Baja',tiempo:'hace 2 días',cliente:'Óscar Ramírez',motivo:'Actualización de número de contacto solicitada por el cliente.',id:'TCK-2283',asignado:'L. Fuentes'}
+    ].map(e => ({...e, prioStyle:this.pill(prio[e.prioridad][0],prio[e.prioridad][1])}));
+    const columnas = [['Pendiente','#D64545'],['Asignado','#FFD100'],['Resuelto','#3FAE49']].map(([titulo,color],i) => {
+      const items = esc.filter(e => e.col===i);
+      return {titulo, items, conteo:String(items.length), dot:'width:8px;height:8px;border-radius:50%;display:block;background:'+color};
+    });
+    const escKpis = [
+      {label:'Pendientes',value:'3'},{label:'Tiempo medio de resolución',value:'4.2 h'},
+      {label:'Escalation Rate',value:'11%'},{label:'Resueltas esta semana',value:'24'}
+    ];
+
+    const politicas = [
+      {num:'01',titulo:'Ventana de contacto',reglas:[
+        {label:'Horario permitido',nota:'Hora local del cliente, de lunes a sábado.',valor:'08:00 – 19:00'},
+        {label:'Domingos y feriados',nota:'No se realiza ningún contacto saliente.',valor:'Sin contacto'},
+        {label:'Intervalo mínimo entre contactos',nota:'Aplica a todos los canales combinados.',valor:'48 horas'}
+      ]},
+      {num:'02',titulo:'Canal de voz',reglas:[
+        {label:'Aviso de grabación',nota:'El agente lo declara en el primer turno de cada llamada.',valor:'Obligatorio'},
+        {label:'Duración máxima de llamada',nota:'Superada, el agente cierra y ofrece devolver el contacto.',valor:'8 minutos'},
+        {label:'Transcripción y retención',nota:'Audio y texto quedan ligados al ticket.',valor:'24 meses'},
+        {label:'Confianza mínima del STT',nota:'Por debajo del umbral el turno se marca para revisión.',valor:'0.80'}
+      ]},
+      {num:'03',titulo:'Frecuencia e intensidad',reglas:[
+        {label:'Máximo de contactos por semana',nota:'Por cliente, sumando todos los canales.',valor:'3'},
+        {label:'Máximo de turnos por conversación',nota:'Superado el límite, se cierra y se reprograma.',valor:'12'},
+        {label:'Reintento tras negativa explícita',nota:'Una negativa cierra el ciclo de contacto vigente.',valor:'No permitido'}
+      ]},
+      {num:'04',titulo:'Márgenes de negociación',reglas:[
+        {label:'Extensión máxima de días',nota:'Sobre la fecha de vencimiento original.',valor:'7 días'},
+        {label:'Monto mínimo de pago parcial',nota:'O el 20% de la cuota, el que resulte mayor.',valor:'$ 75.00'},
+        {label:'Planes que requieren aprobación humana',nota:'Reestructuras y condonaciones de interés.',valor:'Siempre'}
+      ]},
+      {num:'05',titulo:'Escalamiento obligatorio',reglas:[
+        {label:'Molestia sostenida del cliente',nota:'Dos turnos consecutivos con sentimiento negativo.',valor:'Inmediato'},
+        {label:'Indicio de vulnerabilidad financiera',nota:'Desempleo, enfermedad o pérdida familiar declarada.',valor:'Inmediato'},
+        {label:'Solicitud explícita de atención humana',nota:'El agente transfiere sin repreguntar.',valor:'Inmediato'},
+        {label:'Monto en disputa',nota:'El cliente afirma haber pagado o desconoce el saldo.',valor:'Inmediato'}
+      ]}
+    ];
+
+    return {
+      entidad: this.props.entidad ?? 'Banco Agrícola',
+      live: (this.props.mostrarLive ?? true) && s.screen!=='politicas',
+      crumb: titles[s.screen][0], title: titles[s.screen][1],
+      perfiles, nav, perfilActivo:s.perfil,
+      perfilDotStyle:'width:9px;height:9px;border-radius:2px;display:block;background:'+this.colorPerfil(s.perfil),
+      esInicio:s.screen==='inicio', esTickets:s.screen==='tickets', esTicket:s.screen==='ticket',
+      esCliente:s.screen==='cliente', esEscalaciones:s.screen==='escalaciones', esPoliticas:s.screen==='politicas',
+      kpis, canales, gobernanza,
+      tickets, filtrosEstado, filtrosCanal, estadosDemo, skeleton:[0,1,2,3,4,5],
+      colaDatos:s.queue==='datos', colaCargando:s.queue==='cargando', colaVacia:s.queue==='vacio',
+      limpiarFiltros: () => this.setState({estado:'Todos',canal:'Todos',queue:'datos'}),
+      tk:tkView, hilo, filtrosHilo, resumenVoz, programados,
+      volverTickets: () => this.setState({screen:'tickets'}),
+      verCliente: () => this.setState({screen:'cliente'}),
+      verTicket: () => this.setState({screen:'ticket'}),
+      det, columnas, escKpis, politicas
+    };
+  }
+}
+</script>
+</body>
+</html>
